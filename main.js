@@ -1,10 +1,10 @@
 import express from "express";
 import crypto from "crypto";
+import fs from "fs";
 const app = express()
 const port = 3000
-const taxon_length = 100
 
-function create_animal_tree() {
+function create_taxon_tree() {
     return [
         [
             ["root", 0],
@@ -18,9 +18,22 @@ function create_animal_tree() {
         5
     ]
 }
-const [taxon_tree, animal_start_index] = create_animal_tree()
-let todays_taxons;
-let salt;
+const [taxon_tree, animal_start_index] = create_taxon_tree()
+const taxon_length = 100
+const page_template = fs.readFileSync(
+    "./page.html", 
+    "utf-8"
+).replace(
+    "{{ animal_start_index }}", 
+    "" + animal_start_index
+).replace(
+    "{{ taxon_tree }}", 
+    JSON.stringify(taxon_tree)
+)
+
+let todays_taxons = [];
+let salt = 0;
+let page = "";
 
 
 function create_hash(text) {
@@ -37,17 +50,27 @@ function set_todays_animal(){
         todays_taxons.push(taxon)
         i = parent
     }
-    taxons.push(taxon_tree[0][0])
+    todays_taxons.push(taxon_tree[0][0])
 
     todays_taxons = todays_taxons.reverse().map(
         (taxon, i) =>{
-            //return `${i};${salt};${taxon}`
             return create_hash(`${i};${salt};${taxon}`)
         }
     )
     while (todays_taxons.length < taxon_length) {
         todays_taxons.push(create_hash(crypto.randomBytes(32)))
     }
+
+    page = page_template.replace(
+        "{{ salt }}", 
+        "" + salt
+    ).replace(
+        "{{ animal_start_index }}", 
+        "" + animal_start_index
+    ).replace(
+        "{{ todays_taxons }}", 
+        JSON.stringify(todays_taxons)
+    )
 }
 
 function schedule_new_animal(hour, minute) {
@@ -69,17 +92,14 @@ function schedule_new_animal(hour, minute) {
         }, 
         delay
     );
+
 }
 
 set_todays_animal()
 schedule_new_animal(0, 0)
 
-
-
-
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+  res.send(page)
 })
 
-
-//app.listen(port, () => {console.log(`Example app listening on port ${port}`)})
+app.listen(port, () => {console.log(`Example app listening on port ${port}`)})

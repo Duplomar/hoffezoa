@@ -57,35 +57,62 @@
         </style>
         <script>
             class TaxonNode {
-                constructor(name) {
+                constructor(name, parent = null, direct_descendants = [], desc_i = 0) {
                     this.name = name
-                    this.children = []
+                    this.parent = parent
+                    if (desc_i < direct_descendants.length){
+                        this.children = [
+                            new TaxonNode(
+                                this,
+                                direct_descendants[desc_i],
+                                direct_descendants,
+                                desc_i + 1
+                            )
+                        ]
+                    }
+
+                    else
+                        this.children = []
+                }
+
+                _add_to_tree(taxon_list, level) {
+                    const next = this.children.findIndex((child) => {return child.name === taxon_list[level]})
+                    if (next == -1) {
+                        this.children.push(
+                            new TaxonNode(
+                                this,
+                                taxon_list[level],
+                                taxon_list,
+                                level + 1
+                            )
+                        )
+                    }
+                    else
+                        this.children[next]._add_to_tree(taxon_list, level + 1)
                 }
 
                 add_to_tree(taxon_list) {
-                    
-                }
+                    if (taxon_list[0] != this.name)
+                        return false;
 
+                    this._add_to_tree(taxon_list, 1)
+                    return true
+                }
             }
-            const taxon_tree = [
-                ["root", 0],
-                ["ch_1_a", 0],
-                ["ch_1_b", 0],
-                ["ch_2_a", 1],
-                ["ch_2_b", 1],
-                ["and_1", 2],
-                ["and_2", 4]
-            ];
-            const animal_start_index = 5;
+
+            const taxon_tree = {{ taxon_tree }};
+            const animal_start_index = {{ animal_start_index }};
+            const salt = {{ salt }};
+            const todays_taxons = new Set({{ todays_taxons }});
+
             const animal_indices = {}
             for (i = animal_start_index; i < taxon_tree.length; i++) {
                 animal_indices[taxon_tree[i][0]] = i
             }
-            
-            const salt = 5  
-            const todays_taxons = new Set([])
 
-            async function get_hash(message) {
+            let root = new TaxonNode(taxon_tree[0][0])
+
+            async function create_hash(message) {
                 const msgUint8 = new TextEncoder().encode(message);
                 const hashBuffer = await window.crypto.subtle.digest("SHA-512", msgUint8); 
                 const output = new Uint8Array(hashBuffer).toBase64();
@@ -95,6 +122,8 @@
             function get_animal_taxons(animal){
                 let taxons = []
                 let i = animal_indices[animal]
+                if (i == undefined)
+                    return null
 
                 while (i) {
                     const [taxon, parent] = taxon_tree[i]
@@ -109,10 +138,23 @@
             async function find_closest_common(guess_taxons) {
                 for (let i = 0; i < guess_taxons.length; i++) {
                     const taxon = guess_taxons[i];
-                    if (!todays_taxons.has(await get_hash(taxon)))
+                    if (!todays_taxons.has(await create_hash(`${i};${salt};${taxon}`)))
                         return i - 1
                 }
                 return guess_taxons.length - 1
+            }
+
+            function get_next_layer(layer) {
+
+            }
+
+            function construct_tree(){
+                document.getElementById("tree").innerHTML = ""
+                let layer = [[root]]
+                while (layer.length){
+                    var next_layer = get_next_layer(layer)
+
+                }
             }
 
             async function guess_animal(){
@@ -121,14 +163,18 @@
                 document.getElementById("status").innerText = ""
 
                 const guess_taxons = get_animal_taxons(guess)
-                const closest_common = await find_closest_common(guess_taxons)
-                if (closest_common == -1){
+                if (!guess_taxons){
                     document.getElementById("status").innerText = "Not an animal"
                     return
                 }
 
-                console.log(guess_taxons)
-                console.log(closest_common)
+                const closest_common = await find_closest_common(guess_taxons)
+                if (closest_common == -1){
+                    document.getElementById("status").innerText = "No shared root"
+                    return
+                }
+
+                root.add_to_tree(guess_taxons)
 
                 const new_animal = document.createElement("p")
                 new_animal.innerText = guess_taxons[closest_common]
