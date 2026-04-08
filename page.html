@@ -160,6 +160,53 @@
                 return guess_taxons.length - 1
             }
 
+            function draw_line(parent_node, child_node) {
+                if (parent_node && child_node){
+                    const NS = "http://www.w3.org/2000/svg";
+                    const canvas = document.createElementNS(NS, "svg")
+
+                    const parent_rect = parent_node.getBoundingClientRect();
+                    const child_rect = child_node.getBoundingClientRect();
+                    
+                    const parent_x_center = (parent_rect.left + parent_rect.right)/2
+                    const child_x_center = (child_rect.left + child_rect.right)/2
+
+                    let left;
+                    let right;
+                    const parent_right =  child_x_center < parent_x_center;
+                    if (parent_right){                      
+                        left = child_x_center
+                        right = parent_x_center
+                    }
+                    else{
+                        left = parent_x_center
+                        right = child_x_center
+                    }
+                    const width = right - left
+                    const height = child_rect.top - parent_rect.bottom
+
+                    canvas.style.width = width + 1 + "px";
+                    canvas.style.height = height + "px";
+                    canvas.style.left = left - 1 + "px"
+                    canvas.style.top = parent_rect.bottom + "px"
+                    canvas.style.position = "absolute"
+
+                    const line = document.createElementNS(NS,"path")
+                    const parent_line_x = parent_right ? width : 0
+                    const child_line_x = parent_right ? 0: width
+                    line.setAttribute("d", `M ${parent_line_x}, 0 C ${parent_line_x}, ${height * 2/3}, ${child_line_x}, ${height/3}, ${child_line_x}, ${height}`)
+                    line.style.stroke = "red" 
+                    line.style.strokeWidth = "2px" 
+                    line.style.fill = "none"
+                    canvas.appendChild(line)
+                    
+                    //parent_node.parentNode.appendChild(canvas)
+                    document.getElementById("tree").appendChild(canvas)
+                    console.log("called")
+                }
+            }
+
+            let connection_vis_queue = []
             function create_vis_node(parent_vis, name, vis_level){
                 const vis_node = document.createElement("div")
                 vis_node.innerText = name
@@ -175,6 +222,8 @@
                 }
 
                 vis_layer.appendChild(vis_node)
+
+                connection_vis_queue.push([parent_vis, vis_node])
 
                 return vis_node
             }
@@ -211,7 +260,14 @@
                 root.add_to_tree(guess_taxons)
                 document.getElementById("tree").innerHTML = '';
                 root.print()
+
+                connection_vis_queue = []
                 visualize_tree(null, root)
+                connection_vis_queue.forEach(
+                    (vis_nodes) => {
+                        draw_line(vis_nodes[0], vis_nodes[1])
+                    }
+                )
             }
 
             
