@@ -68,6 +68,8 @@
 
         </style>
         <script>
+            const unknown_name = "???"
+            
             class TaxonNode {
                 constructor(name, direct_descendants = [], desc_i = 0) {
                     this.name = name
@@ -87,6 +89,14 @@
                 print(indent = "") {
                     console.log(indent + this.name)
                     this.children.forEach((child) => {child.print(indent + " ")})
+                }
+                purge_unknown(){
+                    this.children = this.children.filter((child) => {return child.name != unknown_name})
+                    this.children.forEach(
+                        (child) => {
+                            child.purge_unknown()
+                        }
+                    )
                 }
 
                 _add_to_tree(taxon_list, level) {
@@ -151,13 +161,13 @@
                 return taxons.reverse()
             }
 
-            async function find_closest_common(guess_taxons) {
+            async function find_split(guess_taxons) {
                 for (let i = 0; i < guess_taxons.length; i++) {
                     const taxon = guess_taxons[i];
                     if (!todays_taxons.has(await create_hash(`${i};${salt};${taxon}`)))
-                        return i - 1
+                        return i
                 }
-                return guess_taxons.length - 1
+                return guess_taxons.length
             }
 
             function draw_line(parent_node, child_node) {
@@ -200,9 +210,7 @@
                     line.style.fill = "none"
                     canvas.appendChild(line)
                     
-                    //parent_node.parentNode.appendChild(canvas)
                     document.getElementById("tree").appendChild(canvas)
-                    console.log("called")
                 }
             }
 
@@ -240,6 +248,7 @@
                 });
             }
 
+            let best_guess = 0
             async function guess_animal(){
                 const guess = document.getElementById("guess-field").value.trim().toLowerCase()
                 document.getElementById("guess-field").value = ""
@@ -251,17 +260,31 @@
                     return
                 }
 
-                const closest_common = await find_closest_common(guess_taxons)
-                if (closest_common == -1){
+                const split_index = await find_split(guess_taxons)
+                if (!split_index){
                     document.getElementById("status").innerText = "No shared root"
                     return
                 }
 
                 root.add_to_tree(guess_taxons)
-                document.getElementById("tree").innerHTML = '';
+                if (split_index > best_guess){
+                    best_guess = split_index
+                    root.purge_unknown()
+                    if(best_guess === guess_taxons.length){
+                        // You win!
+                        document.getElementById("status").innerText = "You win!!"
+                    }else{
+                        let unknowns_taxon = guess_taxons.slice(0, best_guess)
+                        unknowns_taxon.push(unknown_name)
+                        root.add_to_tree(unknowns_taxon)
+                    }
+                }
+
                 root.print()
 
+                document.getElementById("tree").innerHTML = '';
                 connection_vis_queue = []
+
                 visualize_tree(null, root)
                 connection_vis_queue.forEach(
                     (vis_nodes) => {
