@@ -7,15 +7,17 @@ const port = 3000
 function create_taxon_tree() {
     return [
         [
-            ["root", 0],
-            ["ch_1_a", 0],
-            ["ch_1_b", 0],
-            ["ch_2_a", 1],
-            ["ch_2_b", 1],
-            ["and_1", 2],
-            ["and_2", 4]
+            ["animalia", 0],
+            ["reptile", 0],
+            ["mammal", 0],
+            ["snake", 1],
+            ["bird", 1],
+            ["primate", 2],
+            ["black mamba", 3],
+            ["anaconda", 3],
+            ["human", 5],
         ], 
-        5
+        6
     ]
 }
 const [taxon_tree, animal_start_index] = create_taxon_tree()

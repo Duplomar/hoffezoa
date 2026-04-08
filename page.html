@@ -27,6 +27,18 @@
                 background-color: DodgerBlue;
                 color: #fff;
             }
+            .node{
+                border-style: solid;
+                border-width: 2px;
+                padding: 10px;
+                margin: 5px;
+            }
+            .vis-layer{
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
             .autocomplete-items {
                 position: absolute;
                 border: 1px solid #d4d4d4;
@@ -57,13 +69,11 @@
         </style>
         <script>
             class TaxonNode {
-                constructor(name, parent = null, direct_descendants = [], desc_i = 0) {
+                constructor(name, direct_descendants = [], desc_i = 0) {
                     this.name = name
-                    this.parent = parent
                     if (desc_i < direct_descendants.length){
                         this.children = [
                             new TaxonNode(
-                                this,
                                 direct_descendants[desc_i],
                                 direct_descendants,
                                 desc_i + 1
@@ -74,21 +84,27 @@
                     else
                         this.children = []
                 }
+                print(indent = "") {
+                    console.log(indent + this.name)
+                    this.children.forEach((child) => {child.print(indent + " ")})
+                }
 
                 _add_to_tree(taxon_list, level) {
-                    const next = this.children.findIndex((child) => {return child.name === taxon_list[level]})
-                    if (next == -1) {
-                        this.children.push(
-                            new TaxonNode(
-                                this,
-                                taxon_list[level],
-                                taxon_list,
-                                level + 1
+                    if (level < taxon_list.length){
+                        const next = this.children.findIndex((child) => {return child.name === taxon_list[level]})
+                        if (next == -1) {
+                            this.children.push(
+                                new TaxonNode(
+                                    taxon_list[level],
+                                    taxon_list,
+                                    level + 1
+                                )
                             )
-                        )
+                            this.children.sort()
+                        }
+                        else
+                            this.children[next]._add_to_tree(taxon_list, level + 1)
                     }
-                    else
-                        this.children[next]._add_to_tree(taxon_list, level + 1)
                 }
 
                 add_to_tree(taxon_list) {
@@ -144,17 +160,35 @@
                 return guess_taxons.length - 1
             }
 
-            function get_next_layer(layer) {
+            function create_vis_node(parent_vis, name, vis_level){
+                const vis_node = document.createElement("div")
+                vis_node.innerText = name
+                vis_node.className = "node"
 
+                let vis_layer = document.getElementById(`layer_${vis_level}`)
+                if (vis_layer === null){
+                    vis_layer = document.createElement("div")
+                    vis_layer.id = `layer_${vis_level}`
+                    vis_layer.className = "vis-layer"
+                    document.getElementById("tree").appendChild(vis_layer)
+                    vis_layer = document.getElementById(`layer_${vis_level}`)
+                }
+
+                vis_layer.appendChild(vis_node)
+
+                return vis_node
             }
 
-            function construct_tree(){
-                document.getElementById("tree").innerHTML = ""
-                let layer = [[root]]
-                while (layer.length){
-                    var next_layer = get_next_layer(layer)
-
-                }
+            function visualize_tree(parent_vis, parent_node, vis_level = 0){
+                if (parent_vis != null)
+                    while (parent_node.children.length == 1)
+                        parent_node = parent_node.children[0]
+                
+                const vis_node = create_vis_node(parent_vis, parent_node.name, vis_level)
+                
+                parent_node.children.forEach(node => {
+                    visualize_tree(vis_node, node, vis_level + 1)
+                });
             }
 
             async function guess_animal(){
@@ -175,10 +209,9 @@
                 }
 
                 root.add_to_tree(guess_taxons)
-
-                const new_animal = document.createElement("p")
-                new_animal.innerText = guess_taxons[closest_common]
-                document.getElementById("tree").appendChild(new_animal)
+                document.getElementById("tree").innerHTML = '';
+                root.print()
+                visualize_tree(null, root)
             }
 
             
@@ -269,7 +302,7 @@
             </div>
             <input type="submit">
         </form>
-        <div id="tree">
+        <div id ="tree">
         </div>
 
         <script>
