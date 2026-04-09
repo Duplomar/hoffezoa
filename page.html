@@ -7,11 +7,20 @@
             }
             body {
                 font: 16px Arial;
+                display: flex;
+                flex-direction: column;
             }
             .autocomplete {
                 /*the container must be positioned relative:*/
                 position: relative;
-                display: inline-block;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            #guess-form {
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             input {
                 border: 1px solid transparent;
@@ -71,25 +80,22 @@
             const unknown_name = "???"
             
             class TaxonNode {
-                constructor(name, direct_descendants = [], desc_i = 0) {
+                constructor(name, parent = null) {
                     this.name = name
-                    if (desc_i < direct_descendants.length){
-                        this.children = [
-                            new TaxonNode(
-                                direct_descendants[desc_i],
-                                direct_descendants,
-                                desc_i + 1
-                            )
-                        ]
-                    }
-
-                    else
-                        this.children = []
+                    this.parent = parent
+                    this.children = []
                 }
+                
                 print(indent = "") {
                     console.log(indent + this.name)
                     this.children.forEach((child) => {child.print(indent + " ")})
                 }
+
+                remove() {
+                    if (this.parent)
+                        this.parent.children = this.parent.children.filter((child) => {return child != this})
+                }
+
                 purge_unknown(){
                     this.children = this.children.filter((child) => {return child.name != unknown_name})
                     this.children.forEach(
@@ -103,17 +109,20 @@
                     if (level < taxon_list.length){
                         const next = this.children.findIndex((child) => {return child.name === taxon_list[level]})
                         if (next == -1) {
-                            this.children.push(
-                                new TaxonNode(
+                            let node = this
+                            for (; level < taxon_list.length; level++){
+                                const next_node = new TaxonNode(
                                     taxon_list[level],
-                                    taxon_list,
-                                    level + 1
+                                    node
                                 )
-                            )
-                            this.children.sort()
+                                node.children.push(next_node)
+                                node.children.sort()
+                                node = next_node 
+                            }
+                            return node
                         }
                         else
-                            this.children[next]._add_to_tree(taxon_list, level + 1)
+                            return this.children[next]._add_to_tree(taxon_list, level + 1)
                     }
                 }
 
@@ -121,8 +130,7 @@
                     if (taxon_list[0] != this.name)
                         return false;
 
-                    this._add_to_tree(taxon_list, 1)
-                    return true
+                    return this._add_to_tree(taxon_list, 1)
                 }
             }
 
@@ -137,6 +145,8 @@
             }
 
             let root = new TaxonNode(taxon_tree[0][0])
+            let unknowns_node = new TaxonNode(unknown_name, root)
+            root.children.push(unknowns_node)
 
             async function create_hash(message) {
                 const msgUint8 = new TextEncoder().encode(message);
@@ -236,7 +246,7 @@
                 return vis_node
             }
 
-            function visualize_tree(parent_vis, parent_node, vis_level = 0){
+            function visualize_node(parent_vis, parent_node, vis_level = 0){
                 if (parent_vis != null)
                     while (parent_node.children.length == 1)
                         parent_node = parent_node.children[0]
@@ -244,8 +254,27 @@
                 const vis_node = create_vis_node(parent_vis, parent_node.name, vis_level)
                 
                 parent_node.children.forEach(node => {
-                    visualize_tree(vis_node, node, vis_level + 1)
+                    visualize_node(vis_node, node, vis_level + 1)
                 });
+            }
+
+            function visualize_tree(){
+                document.getElementById("tree").innerHTML = '';
+                connection_vis_queue = []
+
+                visualize_node(null, root)
+                connection_vis_queue.forEach(
+                    (vis_nodes) => {
+                        draw_line(vis_nodes[0], vis_nodes[1])
+                    }
+                )
+            }
+
+            function win(){
+                document.getElementById("status").innerText = "You win!!"
+                document.getElementById("guess-form").style.pointerEvents = "none";
+                document.getElementById("guess-button").style.backgroundColor = "gray";
+
             }
 
             let best_guess = 0
@@ -269,30 +298,23 @@
                 root.add_to_tree(guess_taxons)
                 if (split_index > best_guess){
                     best_guess = split_index
-                    root.purge_unknown()
-                    if(best_guess === guess_taxons.length){
-                        // You win!
-                        document.getElementById("status").innerText = "You win!!"
-                    }else{
+                    if (unknowns_node){
+                        unknowns_node.remove()
+                        unknowns_node = null
+                    }
+                    if(best_guess === guess_taxons.length)
+                        win()
+                    else{
                         let unknowns_taxon = guess_taxons.slice(0, best_guess)
                         unknowns_taxon.push(unknown_name)
-                        root.add_to_tree(unknowns_taxon)
+                        unknowns_node = root.add_to_tree(unknowns_taxon)
                     }
                 }
 
                 root.print()
 
-                document.getElementById("tree").innerHTML = '';
-                connection_vis_queue = []
-
-                visualize_tree(null, root)
-                connection_vis_queue.forEach(
-                    (vis_nodes) => {
-                        draw_line(vis_nodes[0], vis_nodes[1])
-                    }
-                )
+                visualize_tree()
             }
-
             
             function autocomplete() {
                 const inp = document.getElementById("guess-field")
@@ -375,17 +397,19 @@
     </head>
     <body>
         <p id="status"></p>
-        <form autocomplete="off" action="javascript:guess_animal()"> 
-             <div class="autocomplete" style="width:300px;">
+        <form autocomplete="off" id = "guess-form" action="javascript:guess_animal()"> 
+            <div class="autocomplete" style="width:150px;">
                 <input type="text" id="guess-field"></input>
             </div>
-            <input type="submit">
+            <input type="submit" id="guess-button">
         </form>
+
         <div id ="tree">
         </div>
-
+        
         <script>
-             autocomplete();
+            visualize_tree()
+            autocomplete();
         </script>
     </body>
 </html>
