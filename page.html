@@ -36,6 +36,13 @@
                 background-color: DodgerBlue;
                 color: #fff;
             }
+            #taxon-info{
+                width: 200px;
+                height: 300px;
+                border-style: solid;
+                border-width: 2px;
+
+            }
             .node{
                 border-style: solid;
                 border-width: 2px;
@@ -153,6 +160,19 @@
                 const hashBuffer = await window.crypto.subtle.digest("SHA-512", msgUint8); 
                 const output = new Uint8Array(hashBuffer).toBase64();
                 return output;
+            }
+            
+            async function get_taxon_info(taxon_name){
+                res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(taxon_name)}`)
+                if (res.status === 200){
+                    content = await res.json()
+                    console.log(content)
+                    document.getElementById("info-title").innerText = content["title"]
+                    if ("thumbnail" in content)
+                        document.getElementById("info-img").src = content["thumbnail"].source
+                        
+                    document.getElementById("info-summary").innerHTML = content["extract_html"]
+                }
             }
 
             function get_animal_taxons(animal){
@@ -278,6 +298,7 @@
             }
 
             let best_guess = 0
+            let guess_count = 0
             async function guess_animal(){
                 const guess = document.getElementById("guess-field").value.trim().toLowerCase()
                 document.getElementById("guess-field").value = ""
@@ -294,6 +315,11 @@
                     document.getElementById("status").innerText = "No shared root"
                     return
                 }
+                taxon_tree[animal_indices[guess]][0] = null
+                guess_count++
+                document.getElementById("guess-counter").innerText = "Guesses: " + guess_count
+
+                p = get_taxon_info(guess_taxons[split_index - 1])
 
                 root.add_to_tree(guess_taxons)
                 if (split_index > best_guess){
@@ -314,6 +340,7 @@
                 root.print()
 
                 visualize_tree()
+                await p
             }
             
             function autocomplete() {
@@ -333,7 +360,7 @@
 
                     for (i = animal_start_index; i < taxon_tree.length; i++) {
                         const item = taxon_tree[i][0];
-                        if (item.substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+                        if (item && item.substr(0, val.length).toUpperCase() == val.toUpperCase()) {
                             b = document.createElement("DIV");
                             b.innerHTML = "<strong>" + item.substr(0, val.length) + "</strong>";
                             b.innerHTML += item.substr(val.length);
@@ -396,13 +423,22 @@
         </script>
     </head>
     <body>
-        <p id="status"></p>
+        <div>
+            <p id="status"></p>
+            <p id="guess-counter">Guesses: 0</p>
+        </div>
         <form autocomplete="off" id = "guess-form" action="javascript:guess_animal()"> 
             <div class="autocomplete" style="width:150px;">
                 <input type="text" id="guess-field"></input>
             </div>
             <input type="submit" id="guess-button">
         </form>
+
+        <div id="taxon-info">
+            <img id="info-img" style="width: 95%"/>
+            <h2 id="info-title"></h2>
+            <div id="info-summary" style="overflow: scroll;"></div>
+        </div>
 
         <div id ="tree">
         </div>
