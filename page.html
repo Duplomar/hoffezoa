@@ -96,15 +96,6 @@
                         this.parent.children = this.parent.children.filter((child) => {return child != this})
                 }
 
-                purge_unknown(){
-                    this.children = this.children.filter((child) => {return child.name != unknown_name})
-                    this.children.forEach(
-                        (child) => {
-                            child.purge_unknown()
-                        }
-                    )
-                }
-
                 _add_to_tree(taxon_list, level) {
                     if (level < taxon_list.length){
                         const next = this.children.findIndex((child) => {return child.name === taxon_list[level]})
