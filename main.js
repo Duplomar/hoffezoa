@@ -4,23 +4,14 @@ import fs from "fs";
 const app = express()
 const port = 3000
 
-function create_taxon_tree() {
+function load_taxon_tree() {
+    const data = JSON.parse(fs.readFileSync("./tree_en_ncbi.json", "utf-8"))
     return [
-        [
-            ["animalia", 0],
-            ["reptile", 0],
-            ["mammal", 0],
-            ["snake", 1],
-            ["bird", 1],
-            ["primate", 2],
-            ["black mamba", 3],
-            ["anaconda", 3],
-            ["human", 5],
-        ], 
-        6
+        data["tree"],
+        data["leaf_start"]
     ]
 }
-const [taxon_tree, animal_start_index] = create_taxon_tree()
+const [taxon_tree, animal_start_index] = load_taxon_tree()
 const taxon_length = 100
 const page_template = fs.readFileSync(
     "./page.html", 
@@ -49,10 +40,10 @@ function set_todays_animal(){
     let i = crypto.randomInt(animal_start_index, taxon_tree.length)
     while (i) {
         const [taxon, parent] = taxon_tree[i]
-        todays_taxons.push(taxon)
+        todays_taxons.push(taxon[0])
         i = parent
     }
-    todays_taxons.push(taxon_tree[0][0])
+    todays_taxons.push(taxon_tree[0][0][0])
 
     todays_taxons = todays_taxons.reverse().map(
         (taxon, i) =>{

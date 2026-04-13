@@ -37,11 +37,14 @@
                 color: #fff;
             }
             #taxon-info{
-                width: 200px;
-                height: 300px;
+                width: 300px;
+                height: 500px;
                 border-style: solid;
                 border-width: 2px;
-
+                display: flex;
+                overflow: hidden;
+                flex-direction: column;
+                align-items: center;
             }
             .node{
                 border-style: solid;
@@ -139,10 +142,12 @@
 
             const animal_indices = {}
             for (i = animal_start_index; i < taxon_tree.length; i++) {
-                animal_indices[taxon_tree[i][0]] = i
+                taxon_tree[i][0].forEach(name => {
+                    animal_indices[name] = i
+                });
             }
 
-            let root = new TaxonNode(taxon_tree[0][0])
+            let root = new TaxonNode(taxon_tree[0][0][0])
             let unknowns_node = new TaxonNode(unknown_name, root)
             root.children.push(unknowns_node)
 
@@ -161,8 +166,17 @@
                     document.getElementById("info-title").innerText = content["title"]
                     if ("thumbnail" in content)
                         document.getElementById("info-img").src = content["thumbnail"].source
-                        
-                    document.getElementById("info-summary").innerHTML = content["extract_html"]
+                    
+                    var info = content["extract_html"]
+                    var old_len = info.length +1 
+                    while (info.length > 400 && old_len != info.length){
+                        const old_len = info.length
+                        const index = info.lastIndexOf(".")
+                        if (index != -1)
+                            info = info.substr(0, index)
+                    }
+
+                    document.getElementById("info-summary").innerHTML = info + "."
                 }
             }
 
@@ -174,10 +188,10 @@
 
                 while (i) {
                     const [taxon, parent] = taxon_tree[i]
-                    taxons.push(taxon)
+                    taxons.push(taxon[0])
                     i = parent
                 }
-                taxons.push(taxon_tree[0][0])
+                taxons.push(taxon_tree[0][0][0])
 
                 return taxons.reverse()
             }
@@ -306,7 +320,7 @@
                     document.getElementById("status").innerText = "No shared root"
                     return
                 }
-                taxon_tree[animal_indices[guess]][0] = null
+                taxon_tree[animal_indices[guess]][0] = []
                 guess_count++
                 document.getElementById("guess-counter").innerText = "Guesses: " + guess_count
 
@@ -339,6 +353,7 @@
                 var currentFocus;
                 inp.addEventListener("input", function(e) {
                     var a, b, i, val = this.value;
+                    val = val.toLowerCase()
                     closeAllLists();
                     if (!val) 
                         return false;
@@ -350,12 +365,23 @@
                     this.parentNode.appendChild(a);
 
                     for (i = animal_start_index; i < taxon_tree.length; i++) {
-                        const item = taxon_tree[i][0];
-                        if (item && item.substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+                        var relevant_name = null
+                        var relevant_index = null
+                        taxon_tree[i][0].forEach((name) => {
+                            const index = name.search(val)
+                            if (index != -1){
+                                relevant_name = name
+                                relevant_index = index
+                            }
+                        })
+                        if (relevant_name) {
+                            main_name = taxon_tree[i][0][0]
                             b = document.createElement("DIV");
-                            b.innerHTML = "<strong>" + item.substr(0, val.length) + "</strong>";
-                            b.innerHTML += item.substr(val.length);
-                            b.innerHTML += "<input type='hidden' value='" + item + "'>";
+                            b.innerHTML = main_name
+                            if (main_name != relevant_name)
+                                b.innerHTML += " (" + relevant_name + ")"
+                            
+                            b.innerHTML += "<input type='hidden' value='" + main_name + "'>";
                                 b.addEventListener("click", function(e) {
                                 inp.value = this.getElementsByTagName("input")[0].value;
                                 closeAllLists();
@@ -366,7 +392,8 @@
                 });
                 inp.addEventListener("keydown", function(e) {
                     var x = document.getElementById(this.id + "autocomplete-list");
-                    if (x) x = x.getElementsByTagName("div");
+                    if (x) 
+                        x = x.getElementsByTagName("div");
                     if (e.keyCode == 40) { //down
                         currentFocus++;
                         addActive(x);
@@ -375,9 +402,10 @@
                         addActive(x);
                     } else if (e.keyCode == 13) { //enter
                         e.preventDefault();
-                        if (currentFocus > -1) {
-                        if (x) x[currentFocus].click();
-                        }
+                        if (currentFocus > -1 && x) 
+                            x[currentFocus].click();
+                        else
+                            guess_animal()   
                     }
                 });
                 function addActive(x) {
@@ -395,16 +423,15 @@
                 }
                 function removeActive(x) {
                     for (var i = 0; i < x.length; i++) {
-                    x[i].classList.remove("autocomplete-active");
+                        x[i].classList.remove("autocomplete-active");
                     }
                 }
                 function closeAllLists(elmnt) {
                     var x = document.getElementsByClassName("autocomplete-items");
                     for (var i = 0; i < x.length; i++) {
-                    if (elmnt != x[i] && elmnt != inp) {
-                    x[i].parentNode.removeChild(x[i]);
+                        if (elmnt != x[i] && elmnt != inp) 
+                            x[i].parentNode.removeChild(x[i]);
                     }
-                }
                 }
                 document.addEventListener("click", function (e) {
                     closeAllLists(e.target);
@@ -426,9 +453,9 @@
         </form>
 
         <div id="taxon-info">
-            <img id="info-img" style="width: 95%"/>
-            <h2 id="info-title"></h2>
-            <div id="info-summary" style="overflow: scroll;"></div>
+            <img id="info-img" style="max-width: 95%; max-height: 300px; margin-top: 10px;"/>
+            <h2 id="info-title" style="margin-bottom: -10px; max-width: 95%;"></h2>
+            <div id="info-summary" style="text-overflow: clip; max-width: 95%;"></div>
         </div>
 
         <div id ="tree">
