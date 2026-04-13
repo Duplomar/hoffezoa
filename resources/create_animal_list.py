@@ -12,10 +12,10 @@ class Taxon:
         self.index = None
 
 
-def get_subtree(animals: List[str], latin_to_id: Dict[str, int], id_tree: Dict[int, int]) -> Dict[int, int]:
+def get_subtree(animals: List[str], latin_to_id: Dict[str, Tuple[int, int]], id_tree: Dict[int, int]) -> Dict[int, int]:
     subtree: Dict[int, int] = {}
     for animal in animals:
-        node_id = latin_to_id[animal]
+        node_id = latin_to_id[animal][0]
         parent_id = id_tree[node_id]
         while parent_id and parent_id != node_id:
             subtree[node_id] = parent_id
@@ -69,13 +69,15 @@ def create_animal_list(language: str, dataset: str):
     del id_tree
     del animals
 
-    id_to_latin: Dict[int, List[str]] = {}
-    for k, v in latin_to_id.items():
-        if v not in id_to_latin:
-            id_to_latin[v] = []
-        id_to_latin[v].append(k)
+    id_to_latin: Dict[int, List[Tuple[str, int]]] = {}
+    for name, (node_id, prio) in latin_to_id.items():
+        if node_id not in id_to_latin:
+            id_to_latin[node_id] = []
+        id_to_latin[node_id].append((prio, name))
 
     del latin_to_id
+
+    id_to_latin = {k: list(map(lambda n_p: n_p[1], sorted(v))) for k, v in id_to_latin.items()}
 
     for node_id, parent_id in subtree.items():
         subtree[node_id] = {"parent": parent_id}
@@ -89,7 +91,10 @@ def create_animal_list(language: str, dataset: str):
                 subtree[node_id]["names"] = translations[la_word]
                 break
             else:
-                subtree[node_id]["names"] = [la_word]
+                latin_main = id_to_latin[node_id][0]
+                if "<" in latin_main:
+                    latin_main = latin_main.split("<", 1)[0].strip()
+                subtree[node_id]["names"] = [latin_main]
 
     return subtree
         
