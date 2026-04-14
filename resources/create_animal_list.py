@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Tuple
 
 HERE = Path(__file__).parent
+animals = list(map(lambda v: v.lower(), json.loads((HERE / "animal_list.json").read_text())))
 
 class Taxon:
     def __init__(self, names: List[str], parent: 'Taxon' = None):
@@ -52,7 +53,7 @@ def load_translations(animal_list: List[str], language: str) -> Dict[str, List[s
 
 
 def create_animal_list(language: str, dataset: str):
-    animals = json.loads((HERE / "animal_list.json").read_text())
+    global animals
     translations = load_translations(animals, language)
     if not translations:
         return
@@ -67,7 +68,6 @@ def create_animal_list(language: str, dataset: str):
 
     subtree = get_subtree(animals, latin_to_id, id_tree)
     del id_tree
-    del animals
 
     id_to_latin: Dict[int, List[Tuple[str, int]]] = {}
     for name, (node_id, prio) in latin_to_id.items():
@@ -81,23 +81,27 @@ def create_animal_list(language: str, dataset: str):
 
     for node_id, parent_id in subtree.items():
         subtree[node_id] = {"parent": parent_id}
+        latin_main = id_to_latin[node_id][0]
+        if "<" in latin_main:
+            latin_main = latin_main.split("<", 1)[0].strip()
 
+        translated = False
         for la_word in id_to_latin[node_id]:
             if la_word in translations:
                 if "names" in subtree:
                     print("Multiple translation for the same taxon id:", node_id)
                     return
 
-                subtree[node_id]["names"] = translations[la_word]
+                subtree[node_id]["names"] = [latin_main] + translations[la_word]
+                translated = True
                 break
-            else:
-                latin_main = id_to_latin[node_id][0]
-                if "<" in latin_main:
-                    latin_main = latin_main.split("<", 1)[0].strip()
-                subtree[node_id]["names"] = [latin_main]
+
+        if not translated:
+            subtree[node_id]["names"] = [latin_main, latin_main]
 
     return subtree
         
+
 def get_lineage(node_id: int, named_subtree: Dict[int, Dict[str, Any]]) -> Taxon:
     if isinstance(named_subtree[node_id], Taxon):
         return named_subtree[node_id]
@@ -116,13 +120,13 @@ def get_lineage(node_id: int, named_subtree: Dict[int, Dict[str, Any]]) -> Taxon
     named_subtree[node_id] = new_taxon
     return new_taxon
 
+
 def create_compact_tree(named_subtree: Dict[int, Dict[str, Any]]) -> Tuple[List, int]:
     last_node = None
     for node_id, v in named_subtree.items():
         if not isinstance(v, Taxon):
             get_lineage(node_id, named_subtree)
         last_node = named_subtree[node_id]
-
 
     while last_node.parent:
         last_node = last_node.parent
@@ -147,21 +151,47 @@ def create_compact_tree(named_subtree: Dict[int, Dict[str, Any]]) -> Tuple[List,
         else:
             leafs.append(current)
     
-    leaf_start_index = len(compact_tree)
     for leaf in sorted(leafs, key=lambda l: l.names[0]):
-        compact_tree.append((leaf.names, leaf.parent.index))
+        compact_tree.append([leaf.names, leaf.parent.index])
     
-    return compact_tree, leaf_start_index
+    return compact_tree
+
+def move_animals_last(comp):
+    global animals
+    animals = set(animals)
+    animals_start = -1
+    for i in range(len(comp)-1, -1, -1):
+        if comp[i][0][0] not in animals:
+            animals_start = i + 1
+            break
+    
+    for i in range(animals_start -2, -1, -1):
+        if comp[i][0][0] in animals:
+            print("Found out of place animal:", comp[i])
+            comp[i], comp[animals_start - 1] = comp[animals_start - 1], comp[i]
+            for node in comp:
+                if node[1] == animals_start -1:
+                    node[1] = i
+                elif node[1] == i:
+                    node[1] = animals_start -1
+            animals_start -= 1
+
+    return comp, animals_start
 
 
 language = "en"
 dataset = "ncbi"
 
+print("Creating subtree")
 named_subtree = create_animal_list(language, dataset)
-comp, start = create_compact_tree(named_subtree)
-(HERE.parent / f"tree_{language}_{dataset}.json").write_text(
-    json.dumps({
-        "tree": comp,
-        "leaf_start": start
-    })
-)
+if named_subtree:
+    print("Creating list")
+    comp = create_compact_tree(named_subtree)
+    print("Fix animal position")
+    comp, start = move_animals_last(comp)
+    (HERE.parent / f"tree_{language}_{dataset}.json").write_text(
+        json.dumps({
+            "tree": comp,
+            "leaf_start": start
+        }, indent=1)
+    )
