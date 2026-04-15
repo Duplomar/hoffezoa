@@ -136,9 +136,9 @@
                 }
             }
 
-            //const taxon_tree = {{ taxon_tree }};
-            //const animal_start_index = {{ animal_start_index }};
-            //const salt = {{ salt }};
+            const taxon_tree = {{ taxon_tree }};
+            const animal_start_index = {{ animal_start_index }};
+            const salt = {{ salt }};
             const todays_taxons = new Set({{ todays_taxons }});
 
             const animal_indices = {}
@@ -148,9 +148,10 @@
                 });
             }
 
-            let root = new TaxonNode(taxon_tree[0][0][0])
-            let unknowns_node = new TaxonNode(unknown_name, root)
+            let root = new TaxonNode(taxon_tree[0][0])
+            let unknowns_node = new TaxonNode([unknown_name, unknown_name], root)
             root.children.push(unknowns_node)
+            
 
             async function create_hash(message) {
                 const msgUint8 = new TextEncoder().encode(message);
@@ -195,19 +196,19 @@
                     return null
 
                 while (i) {
-                    const [taxon, parent] = taxon_tree[i]
-                    taxons.push(taxon[0])
+                    const [taxon_names, parent] = taxon_tree[i]
+                    taxons.push(taxon_names)
                     i = parent
                 }
-                taxons.push(taxon_tree[0][0][0])
+                taxons.push(taxon_tree[0][0])
 
                 return taxons.reverse()
             }
 
             async function find_split(guess_taxons) {
                 for (let i = 0; i < guess_taxons.length; i++) {
-                    const taxon = guess_taxons[i];
-                    if (!todays_taxons.has(await create_hash(`${i};${salt};${taxon}`)))
+                    const true_name = guess_taxons[i][0];
+                    if (!todays_taxons.has(await create_hash(`${i};${salt};${true_name}`)))
                         return i
                 }
                 return guess_taxons.length
@@ -258,11 +259,14 @@
             }
 
             let connection_vis_queue = []
-            function create_vis_node(parent_vis, name, vis_level){
+            function create_vis_node(parent_vis, names, vis_level){
+                const true_name = names[0]
+                const display_name = names[1]
+
                 const vis_node = document.createElement("div")
-                vis_node.innerText = name
+                vis_node.innerText = display_name
                 vis_node.className = "node"
-                vis_node.onclick = () => {get_taxon_info(name)}
+                vis_node.onclick = () => {get_taxon_info(true_name)}
 
                 let vis_layer = document.getElementById(`layer_${vis_level}`)
                 if (vis_layer === null){
@@ -285,7 +289,7 @@
                     while (parent_node.children.length == 1)
                         parent_node = parent_node.children[0]
                 
-                const vis_node = create_vis_node(parent_vis, parent_node.name, vis_level)
+                const vis_node = create_vis_node(parent_vis, parent_node.names, vis_level)
                 
                 parent_node.children.forEach(node => {
                     visualize_node(vis_node, node, vis_level + 1)
@@ -312,6 +316,7 @@
             }
 
             let best_guess = 0
+            let closest_taxon_names = root.names
             let guess_count = 0
             async function guess_animal(){
                 const guess = document.getElementById("guess-field").value.trim().toLowerCase()
@@ -337,6 +342,7 @@
                 root.add_to_tree(guess_taxons)
                 if (split_index > best_guess){
                     best_guess = split_index
+                    closest_taxon_names = guess_taxons[best_guess - 1]
                     if (unknowns_node){
                         unknowns_node.remove()
                         unknowns_node = null
@@ -345,11 +351,11 @@
                         win()
                     else{
                         let unknowns_taxon = guess_taxons.slice(0, best_guess)
-                        unknowns_taxon.push([unknown_name])
+                        unknowns_taxon.push([unknown_name, unknown_name])
                         unknowns_node = root.add_to_tree(unknowns_taxon)
                     }
                 }
-                p = get_taxon_info(guess_taxons[best_guess - 1])
+                p = get_taxon_info(closest_taxon_names[0])
 
                 root.print()
 

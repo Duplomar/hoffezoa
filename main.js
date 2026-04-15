@@ -39,8 +39,8 @@ function set_todays_animal(){
 
     let i = crypto.randomInt(animal_start_index, taxon_tree.length)
     while (i) {
-        const [taxon, parent] = taxon_tree[i]
-        todays_taxons.push(taxon[0])
+        const [taxon_names, parent] = taxon_tree[i]
+        todays_taxons.push(taxon_names[0])
         i = parent
     }
     todays_taxons.push(taxon_tree[0][0][0])
