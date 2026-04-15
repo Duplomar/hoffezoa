@@ -1,8 +1,10 @@
 import express from "express";
 import crypto from "crypto";
 import fs from "fs";
+import zlib from "zlib"
+
 const app = express()
-const port = 3000
+const port = 8000
 
 function load_taxon_tree() {
     const data = JSON.parse(fs.readFileSync("./tree_en_ncbi.json", "utf-8"))
@@ -24,9 +26,13 @@ const page_template = fs.readFileSync(
     JSON.stringify(taxon_tree)
 )
 
+let replace_time = new Date()
+let expire_str = replace_time.toUTCString()
+
 let todays_taxons = [];
 let salt = 0;
 let page = "";
+let page_br = "";
 
 
 function create_hash(text) {
@@ -64,6 +70,9 @@ function set_todays_animal(){
         "{{ todays_taxons }}", 
         JSON.stringify(todays_taxons)
     )
+    page_br = zlib.brotliCompressSync(Buffer.from(page));
+    replace_time.setDate(replace_time.getDate() + 1)
+    expire_str = replace_time.toUTCString()
 }
 
 function schedule_new_animal(hour, minute) {
@@ -74,10 +83,11 @@ function schedule_new_animal(hour, minute) {
 
     if (next <= now) 
         next.setDate(next.getDate() + 1);
-    
+
+    replace_time = next
+    expire_str = replace_time.toUTCString()
 
     const delay = next - now;
-
     setTimeout( 
         () => {
             set_todays_animal();
@@ -92,7 +102,17 @@ set_todays_animal()
 schedule_new_animal(0, 0)
 
 app.get('/', (req, res) => {
-  res.send(page)
+    res.set('Expires', replace_time);
+
+    const enc = req.headers['accept-encoding'] || '';
+    if (enc.includes('br')) {
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        res.set('Content-Encoding', 'br');
+        res.set('Vary', 'Accept-Encoding');
+        res.send(page_br);
+    }
+    else
+        res.send(page)
 })
 
-app.listen(port, () => {console.log(`Example app listening on port ${port}`)})
+app.listen(port, () => {console.log(`Metazoa running at ${port}`)})

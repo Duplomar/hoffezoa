@@ -6,10 +6,12 @@
                 box-sizing: border-box; 
             }
             body {
-                font: 16px Arial;
+                font: 16px Sans-serif;
                 display: flex;
                 flex-direction: column;
-                background-color: #D6D5B3;
+                background-color: #8fc1e3;
+                font-weight: bold;
+                color: #f7f9fb;
             }
             .autocomplete {
                 /*the container must be positioned relative:*/
@@ -32,35 +34,38 @@
             input[type=text] {
                 background-color: #f1f1f1;
                 width: 100%;
+                border-radius: 5px;
             }
             input[type=submit] {
-                background-color: DodgerBlue;
-                color: #fff;
+                background-color: #5085a5;
+                color: #f7f9fb;
+                border-radius: 5px;
             }
             #taxon-info{
                 width: 300px;
                 min-height: 500px;
                 border-style: solid;
                 border-width: 2px;
+                border-radius: 5px;
                 display: flex;
                 overflow: hidden;
                 flex-direction: column;
                 align-items: center;
+                background-color: #687864;
+                border-color: #31708e;
             }
             .node{
                 border-radius: 5px;
                 border-width: 2px;
                 border-style: solid;
-                border-color: #F92A82;
-                background-color: #ED7B84;
-                font-weight: bold;
-                color: #F5DBCB;
+                border-color: #31708e;
+                background-color: #687864;
                 padding: 10px;
                 margin: 5px;
                 cursor: pointer;
             }
             .vis-layer{
-                margin-bottom: 20px;
+                margin-bottom: 40px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -79,22 +84,22 @@
             .autocomplete-items div {
                 padding: 10px;
                 cursor: pointer;
-                background-color: #fff;
-                border-bottom: 1px solid #d4d4d4;
+                background-color: #5085a5;
+                border-bottom: 1px solid #31708e;
             }
             .autocomplete-items div:hover {
                 /*when hovering an item:*/
-                background-color: #e9e9e9;
+                background-color: #5a707e;
             }
             .autocomplete-active {
                 /*when navigating through the items using the arrow keys:*/
-                background-color: DodgerBlue !important;
-                color: #ffffff;
+                background-color: #31708e !important;
             }
 
         </style>
         <script>
             const unknown_name = "???"
+            const guess_limit = 10;
             
             class TaxonNode {
                 constructor(names, parent = null) {
@@ -180,15 +185,15 @@
                             document.getElementById("info-img").src = ""
                         
                         var info = content["extract_html"]
-                        var old_len = info.length +1 
-                        while (info.length > 400 && old_len != info.length){
-                            const old_len = info.length
-                            const index = info.lastIndexOf(".")
-                            if (index != -1)
-                                info = info.substr(0, index)
+                        var start_index = 0
+                        while (true){
+                            const index = info.indexOf(".", start_index)
+                            if (index > 400 || index == -1)
+                                break
+                            start_index = index + 1
                         }
 
-                        document.getElementById("info-summary").innerHTML = info + "."
+                        document.getElementById("info-summary").innerHTML = info.substr(0, start_index)
                         document.getElementById("info-link").setAttribute("href", content["content_urls"]["desktop"]["page"])
                         curr_info = taxon_name
                     }
@@ -255,7 +260,7 @@
                     const parent_line_x = parent_right ? width : 0
                     const child_line_x = parent_right ? 0: width
                     line.setAttribute("d", `M ${parent_line_x}, 0 C ${parent_line_x}, ${height * 2/3}, ${child_line_x}, ${height/3}, ${child_line_x}, ${height}`)
-                    line.style.stroke = "red" 
+                    line.style.stroke = "#31708e" 
                     line.style.strokeWidth = "2px" 
                     line.style.fill = "none"
                     canvas.appendChild(line)
@@ -318,7 +323,12 @@
                 document.getElementById("status").innerText = "You win!!"
                 document.getElementById("guess-form").style.pointerEvents = "none";
                 document.getElementById("guess-button").style.backgroundColor = "gray";
+            }
 
+            function lose(){
+                document.getElementById("status").innerText = "You lose!!"
+                document.getElementById("guess-form").style.pointerEvents = "none";
+                document.getElementById("guess-button").style.backgroundColor = "gray";
             }
 
             let best_guess = 0
@@ -342,9 +352,9 @@
                 }
                 taxon_tree[animal_indices[guess]][0] = []
                 guess_count++
-                document.getElementById("guess-counter").innerText = "Guesses: " + guess_count
+                document.getElementById("guess-counter").innerText = "Guesses: " + guess_count + "/" + guess_limit
 
-
+                var won = false;
                 root.add_to_tree(guess_taxons)
                 if (split_index > best_guess){
                     best_guess = split_index
@@ -353,8 +363,10 @@
                         unknowns_node.remove()
                         unknowns_node = null
                     }
-                    if(best_guess === guess_taxons.length)
-                        win()
+                    if(best_guess === guess_taxons.length){
+                        win();
+                        won = true;
+                    }
                     else{
                         let unknowns_taxon = guess_taxons.slice(0, best_guess)
                         unknowns_taxon.push([unknown_name, unknown_name])
@@ -362,8 +374,8 @@
                     }
                 }
                 p = get_taxon_info(closest_taxon_names[0])
-
-                root.print()
+                if (guess_count >= guess_limit && !won)
+                    lose()
 
                 visualize_tree()
                 await p
@@ -371,7 +383,8 @@
             
             function autocomplete() {
                 const inp = document.getElementById("guess-field")
-                var currentFocus;
+                const list_id = "guess-autocomplete-list"
+                var current_focus = -1;
                 inp.addEventListener("input", function(e) {
                     var a, b, i, val = this.value;
                     val = val.toLowerCase()
@@ -379,9 +392,9 @@
                     if (!val) 
                         return false;
 
-                    currentFocus = -1;
+                    current_focus = -1;
                     a = document.createElement("DIV");
-                    a.setAttribute("id", this.id + "autocomplete-list");
+                    a.setAttribute("id", list_id);
                     a.setAttribute("class", "autocomplete-items");
                     this.parentNode.appendChild(a);
 
@@ -412,47 +425,41 @@
                     }
                 });
                 inp.addEventListener("keydown", function(e) {
-                    var x = document.getElementById(this.id + "autocomplete-list");
-                    if (x) 
-                        x = x.getElementsByTagName("div");
+                    var el_list = document.getElementById(list_id);
+                    if (el_list) 
+                        el_list = el_list.getElementsByTagName("div");
                     if (e.keyCode == 40) { //down
-                        currentFocus++;
-                        addActive(x);
-                    } else if (e.keyCode == 38) { //up
-                        currentFocus--;
-                        addActive(x);
-                    } else if (e.keyCode == 13) { //enter
+                        setActive(el_list, current_focus + 1);
+                    } 
+                    else if (e.keyCode == 38) { //up
+                        setActive(el_list, current_focus - 1);
+                    } 
+                    else if (e.keyCode == 13) { //enter
                         e.preventDefault();
-                        if (currentFocus > -1 && x) 
-                            x[currentFocus].click();
+                        if (current_focus > -1 && el_list.length) 
+                            el_list[current_focus].click();
                         else
                             guess_animal()   
                     }
                 });
-                function addActive(x) {
-                    if (!x) 
-                        return false;
-                    removeActive(x);
+                function setActive(el_list, new_focus) {
+                    if (new_focus != current_focus && el_list.length){
+                        if (current_focus != -1)
+                            el_list[current_focus].classList.remove("autocomplete-active")
 
-                    if (currentFocus >= x.length) 
-                        currentFocus = 0;
-
-                    if (currentFocus < 0) 
-                        currentFocus = (x.length - 1);
-
-                    x[currentFocus].classList.add("autocomplete-active");
-                }
-                function removeActive(x) {
-                    for (var i = 0; i < x.length; i++) {
-                        x[i].classList.remove("autocomplete-active");
+                        if (new_focus >= el_list.length) 
+                            new_focus = 0;
+                        else if (new_focus < 0) 
+                            new_focus = (el_list.length - 1);
+                        current_focus = new_focus
+                        el_list[current_focus].classList.add("autocomplete-active");
                     }
-                }
+                };
                 function closeAllLists(elmnt) {
-                    var x = document.getElementsByClassName("autocomplete-items");
-                    for (var i = 0; i < x.length; i++) {
-                        if (elmnt != x[i] && elmnt != inp) 
-                            x[i].parentNode.removeChild(x[i]);
-                    }
+                    var el_list = document.getElementById(list_id)
+                    if (el_list)
+                        el_list.remove()
+                    current_focus = -1
                 }
                 document.addEventListener("click", function (e) {
                     closeAllLists(e.target);
@@ -462,21 +469,18 @@
         </script>
     </head>
     <body>
-        <div>
-            <p id="status"></p>
-            <p id="guess-counter">Guesses: 0</p>
-        </div>
-        <form autocomplete="off" id = "guess-form" action="javascript:guess_animal()"> 
-            <div class="autocomplete" style="width:150px;">
-                <input type="text" id="guess-field"></input>
-            </div>
-            <input type="submit" id="guess-button">
-        </form>
-
         <div style="display: flex; flex-wrap: wrap;">
 
             <div style="flex: 1 1 0px; min-width: 400px"></div>
             <div style="flex: 1 1 0px; min-width: 400px;">
+                <form autocomplete="off" id = "guess-form" action="javascript:guess_animal()"> 
+                    <div class="autocomplete" style="width:150px;">
+                        <input type="text" id="guess-field"></input>
+                    </div>
+                    <input type="submit" id="guess-button" value="Guess"/>
+                    <p id="guess-counter" style="margin-left: 10px;"></p>
+                </form>
+                <p id="status" style="height: 30px;text-align: center;"></p>
                 <div id ="tree">
                 </div>
             </div>
@@ -485,7 +489,7 @@
                 <div id="taxon-info">
                     <a id="info-link" target="_blank" style="display: flex; align-items: center;justify-content: center; flex-direction: column;">
                         <img id="info-img" style="max-width: 95%; max-height: 300px; margin-top: 10px;"/>
-                        <h2 id="info-title" style="margin-bottom: -10px; max-width: 95%;"></h2>
+                        <h2 id="info-title" style="margin-bottom: -10px; max-width: 95%; color:#f7f9fb"></h2>
                     </a>
                     <div id="info-summary" style="text-overflow: clip; max-width: 95%;"></div>
                 </div>
