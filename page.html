@@ -91,14 +91,14 @@
             const unknown_name = "???"
             
             class TaxonNode {
-                constructor(name, parent = null) {
-                    this.name = name
+                constructor(names, parent = null) {
+                    this.names = names
                     this.parent = parent
                     this.children = []
                 }
                 
                 print(indent = "") {
-                    console.log(indent + this.name)
+                    console.log(indent + this.names)
                     this.children.forEach((child) => {child.print(indent + " ")})
                 }
 
@@ -109,7 +109,7 @@
 
                 _add_to_tree(taxon_list, level) {
                     if (level < taxon_list.length){
-                        const next = this.children.findIndex((child) => {return child.name === taxon_list[level]})
+                        const next = this.children.findIndex((child) => {return child.names[0] === taxon_list[level][0]})
                         if (next == -1) {
                             let node = this
                             for (; level < taxon_list.length; level++){
@@ -129,16 +129,16 @@
                 }
 
                 add_to_tree(taxon_list) {
-                    if (taxon_list[0] != this.name)
+                    if (taxon_list[0][0] != this.names[0])
                         return false;
 
                     return this._add_to_tree(taxon_list, 1)
                 }
             }
 
-            const taxon_tree = {{ taxon_tree }};
-            const animal_start_index = {{ animal_start_index }};
-            const salt = {{ salt }};
+            //const taxon_tree = {{ taxon_tree }};
+            //const animal_start_index = {{ animal_start_index }};
+            //const salt = {{ salt }};
             const todays_taxons = new Set({{ todays_taxons }});
 
             const animal_indices = {}
@@ -345,7 +345,7 @@
                         win()
                     else{
                         let unknowns_taxon = guess_taxons.slice(0, best_guess)
-                        unknowns_taxon.push(unknown_name)
+                        unknowns_taxon.push([unknown_name])
                         unknowns_node = root.add_to_tree(unknowns_taxon)
                     }
                 }
@@ -384,13 +384,13 @@
                             }
                         })
                         if (relevant_name) {
-                            main_name = taxon_tree[i][0][0]
+                            display_name = taxon_tree[i][0][1]
                             b = document.createElement("DIV");
-                            b.innerHTML = main_name
-                            if (main_name != relevant_name)
+                            b.innerHTML = display_name
+                            if (display_name != relevant_name)
                                 b.innerHTML += " (" + relevant_name + ")"
                             
-                            b.innerHTML += "<input type='hidden' value='" + main_name + "'>";
+                            b.innerHTML += "<input type='hidden' value='" + display_name + "'>";
                                 b.addEventListener("click", function(e) {
                                 inp.value = this.getElementsByTagName("input")[0].value;
                                 closeAllLists();
