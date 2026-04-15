@@ -30,6 +30,9 @@ let replace_time = new Date()
 let expire_str = replace_time.toUTCString()
 
 let todays_taxons = [];
+let todays_animal_index = -1;
+let yesterdays_animal_index = -1;
+
 let salt = 0;
 let page = "";
 let page_br = "";
@@ -44,6 +47,8 @@ function set_todays_animal(){
     todays_taxons = []
 
     let i = crypto.randomInt(animal_start_index, taxon_tree.length)
+    yesterdays_animal_index = todays_animal_index
+    todays_animal_index = i
     while (i) {
         const [taxon_names, parent] = taxon_tree[i]
         todays_taxons.push(taxon_names[0])
@@ -66,6 +71,9 @@ function set_todays_animal(){
     ).replace(
         "{{ animal_start_index }}", 
         "" + animal_start_index
+    ).replace(
+        "{{ yesterdays_animal_index }}", 
+        "" + yesterdays_animal_index
     ).replace(
         "{{ todays_taxons }}", 
         JSON.stringify(todays_taxons)
@@ -102,7 +110,7 @@ set_todays_animal()
 schedule_new_animal(0, 0)
 
 app.get('/', (req, res) => {
-    res.set('Expires', replace_time);
+    res.set('Expires', expire_str);
 
     const enc = req.headers['accept-encoding'] || '';
     if (enc.includes('br')) {
