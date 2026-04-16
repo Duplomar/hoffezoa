@@ -131,12 +131,50 @@
         <script>
             const unknown_name = "???"
             const guess_limit = 10;
+            const today = new Date()
             
+            const taxon_tree = {{ taxon_tree }};
+            const animal_start_index = {{ animal_start_index }};
+            const salt = {{ salt }};
+            const yesterdays_animal_index = {{ yesterdays_animal_index }};
+            const todays_taxons = new Set({{ todays_taxons }});
+
+            const animal_indices = {}
+            for (i = animal_start_index; i < taxon_tree.length; i++) {
+                taxon_tree[i][0].forEach(name => {
+                    animal_indices[name] = i
+                });
+            }
+
             class TaxonNode {
                 constructor(names, parent = null) {
                     this.names = names
                     this.parent = parent
                     this.children = []
+                }
+
+                to_str(){
+                    let child_s = []
+                    this.children.forEach(
+                        (child) => {
+                            child_s.push(child.to_str())
+                        }
+                    )
+                    return `{"n":["${this.names.join('","')}"],"c": [${child_s.join(",")}]}`
+                }
+                
+                static _from_json(taxon_tree_json, parent){
+                    let new_node = new TaxonNode(taxon_tree_json["n"], parent)
+                    taxon_tree_json["c"].forEach(
+                        (child) => {
+                            new_node.children.push(TaxonNode._from_json(child, new_node))
+                        }
+                    )
+                    return new_node
+                }
+
+                static from_str(taxon_tree_str){
+                    return TaxonNode._from_json(JSON.parse(taxon_tree_str), null)
                 }
                 
                 print(indent = "") {
@@ -178,23 +216,57 @@
                 }
             }
 
-            const taxon_tree = {{ taxon_tree }};
-            const animal_start_index = {{ animal_start_index }};
-            const salt = {{ salt }};
-            const yesterdays_animal_index = {{ yesterdays_animal_index }};
-            const todays_taxons = new Set({{ todays_taxons }});
-
-            const animal_indices = {}
-            for (i = animal_start_index; i < taxon_tree.length; i++) {
-                taxon_tree[i][0].forEach(name => {
-                    animal_indices[name] = i
-                });
+            let _storage;
+            let strg = null;
+            try {
+                _storage = window.localStorage;
+                const x = "xyz";
+                _storage.setItem(x, x);
+                _storage.removeItem(x);
+                strg = _storage;
+            } catch (e) {
+                if ( e instanceof DOMException &&
+                     e.name === "QuotaExceededError" &&
+                     _storage &&
+                     _storage.length !== 0
+                    )
+                    strg = _storage;
             }
-
-            let root = new TaxonNode(taxon_tree[0][0])
-            let unknowns_node = new TaxonNode([unknown_name, unknown_name], root)
-            root.children.push(unknowns_node)
             
+            let root = new TaxonNode(taxon_tree[0][0]);
+            let unknowns_node = new TaxonNode([unknown_name, unknown_name], root);
+            root.children.push(unknowns_node)
+
+            let first_play = today;
+            let history = [];
+            let longest_streak = 0;
+            let current_streak = 0;
+
+            if (strg){
+                const first_play_str = strg.getItem("first_play")
+                if (first_play_str){
+                    first_play = new Date(first_play_str)
+                    const history_str = strg.getItem("history")
+                    if (history_str){
+                        let _streak = 0
+                        for (let i = 0; i < history_str.length; i++){
+                            const score = history_str.charCodeAt(i) - 98
+                            history.push(score)
+                            if (score > 0)
+                                _streak++
+                            else
+                                _streak = 0
+                            if (_streak > longest_streak)
+                                longest_streak = _streak
+                        }
+
+                        days_diff = (today - first_play)/86400000
+                        for (let i = 0; i < days_diff.length; i++)
+                            history.push(0)
+                    }
+                }
+
+            }
 
             async function create_hash(message) {
                 const msgUint8 = new TextEncoder().encode(message);
@@ -412,6 +484,9 @@
                 p = get_taxon_info(closest_taxon_names[0])
                 if (guess_count >= guess_limit && !won)
                     lose()
+
+                if (strg)
+                    strg.setItem("curr_tree", root.to_str())
 
                 visualize_tree()
                 await p
