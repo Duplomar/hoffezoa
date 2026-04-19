@@ -13,6 +13,9 @@
                 font-weight: bold;
                 color: #f7f9fb;
             }
+            h3 {
+                text-align: center;
+            }
             .autocomplete {
                 /*the container must be positioned relative:*/
                 position: relative;
@@ -95,7 +98,7 @@
                 /*when navigating through the items using the arrow keys:*/
                 background-color: #31708e !important;
             }
-            #modal {
+            .modal {
                 display: none; 
                 position: fixed; 
                 z-index: 1; 
@@ -106,7 +109,7 @@
                 overflow: auto; 
                 background-color: rgba(0,0,0,0.4); 
             }
-            #modal-content {
+            .modal-content {
                 background-color: #8fc1e3;
                 margin: 20% auto;
                 padding: 20px;
@@ -426,7 +429,7 @@
             function disable_game(){
                 document.getElementById("guess-form").style.pointerEvents = "none";
                 document.getElementById("guess-button").style.backgroundColor = "gray";
-                document.getElementById("modal").style.display = "block";
+                document.getElementById("post-game").style.display = "block";
             }
             function win(){
                 disable_game()
@@ -577,20 +580,22 @@
                 });
             } 
 
-            function close_modal() {
-                document.getElementById("modal").style.display = "none";
+            function close_el(el_id) {
+                document.getElementById(el_id).style.display = "none"
             }
 
             window.onclick = function(event) {
-                if (event.target == modal) {
-                    close_modal()
+                if (event.target.className == "modal") {
+                    close_el(event.target.id)
                 }
             } 
         </script>
     </head>
     <body>
+        <div>
+            <button onclick="document.getElementById('help').style.display='block'">?</button>
+        </div>
         <div style="display: flex; flex-wrap: wrap;">
-
             <div style="flex: 1 1 0px; min-width: 400px"></div>
             <div style="flex: 1 1 0px; min-width: 400px;">
                 <form autocomplete="off" id = "guess-form" action="javascript:guess_animal()"> 
@@ -616,10 +621,36 @@
             </div>
         </div>
 
-        <div id="modal">
-            <div id="modal-content">
-                <span id="close-modal" onclick="close_modal()">&times;</span>
-                <p>Some text in the Modal..</p>
+        <div class="modal" id="post-game">
+            <div class="modal-content">
+                <span class="close-modal" onclick="close_el('post-game')">&times;</span>
+                <div id="stats">
+                    <div class="stat-block">
+                        <p>Guesses</p>
+                        <p id="final-guesses">0</p>
+                    </div>
+                    <div class="stat-block">
+                        <p>Current streak</p>
+                        <p id="curr-streak">0</p>
+                    </div>
+                    <div class="stat-block">
+                        <p>Longest streak</p>
+                        <p id="long-streak">0</p>
+                    </div>
+                </div>
+                <h3>History</h3>
+                <div id="history">
+                    
+                </div>
+            </div>
+        </div>
+        <div class="modal" id="help">
+            <div class="modal-content">
+                <span class="close-modal" onclick="close_el('help')">&times;</span>
+                <h3>How to play</h3>
+                <p>
+                    Guess an animal
+                </p>
             </div>
         </div>
         <script>
