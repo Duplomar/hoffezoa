@@ -257,35 +257,36 @@
             let unknowns_node = new TaxonNode([unknown_name, unknown_name], root);
             root.children.push(unknowns_node)
 
-            let first_play = today;
-            let history = [];
+            let curr_play_date = new Date(0);
+            let curr_guesses = []
+
             let longest_streak = 0;
             let current_streak = 0;
 
-            if (strg){
-                const first_play_str = strg.getItem("first_play")
-                if (first_play_str){
-                    first_play = new Date(first_play_str)
-                    const history_str = strg.getItem("history")
-                    if (history_str){
-                        let _streak = 0
-                        for (let i = 0; i < history_str.length; i++){
-                            const score = history_str.charCodeAt(i) - 98
-                            history.push(score)
-                            if (score > 0)
-                                _streak++
-                            else
-                                _streak = 0
-                            if (_streak > longest_streak)
-                                longest_streak = _streak
-                        }
+            let played_games = 0
+            let won_games = 0
 
-                        days_diff = (today - first_play)/86400000
-                        for (let i = 0; i < days_diff.length; i++)
-                            history.push(0)
+            if (strg){
+                const curr_play_date_str = strg.getItem("curr_play_date")
+                curr_play_date = new Date(curr_play_date_str)
+                const diff = parseInt((today - curr_play_date)/(24 * 60 * 60 * 1000))
+                if (diff === 0) {
+                    const curr_guesses_str = strg.getItem("curr_guesses") || "[]"
+                    curr_guesses = JSON.parse(curr_guesses_str)
+                }
+                else {
+                    strg.setItem("curr_guesses", "[]")
+                    strg.setItem("curr_play_date", today.toISOString())
+                    if (diff > 1) {
+                        strg.setItem("current_streak", "0")
                     }
                 }
 
+                current_streak = parseInt(strg.getItem("current_streak")) || 0
+                longest_streak = parseInt(strg.getItem("longest_streak")) || 0
+                played_games = parseInt(strg.getItem("played_games")) || 0
+                won_games = parseInt(strg.getItem("won_games")) || 0
+                
             }
 
             async function create_hash(message) {
@@ -442,29 +443,46 @@
                 )
             }
 
-            function disable_game(){
+            function game_over(rerun){
                 document.getElementById("guess-form").style.pointerEvents = "none";
                 document.getElementById("guess-button").style.backgroundColor = "gray";
                 document.getElementById("post-game").style.display = "block";
+                if (!rerun){
+                    played_games++;
+                    if (strg){
+                        strg.setItem("current_streak", current_streak)
+                        strg.setItem("longest_streak", longest_streak)
+                        strg.setItem("played_games", played_games)
+                        strg.setItem("won_games", won_games)
+                    }
+                }
             }
-            function win(){
-                disable_game()
+            function win(rerun){
                 document.getElementById("status").innerText = "You win!!"
+                if (!rerun){
+                    won_games++;
+                    current_streak++;
+                    if (current_streak > longest_streak)
+                        longest_streak = current_streak
+                }
+                game_over(rerun)
 
             }
 
-            function lose(){
-                disable_game()
+            function lose(rerun){
                 document.getElementById("status").innerText = "You lose!!"
+                game_over(rerun)
             }
 
             let best_guess = 0
             let closest_taxon_names = root.names
             let guess_count = 0
-            async function guess_animal(){
-                const guess = document.getElementById("guess-field").value.trim().toLowerCase()
-                document.getElementById("guess-field").value = ""
-                document.getElementById("status").innerText = ""
+            async function guess_animal(guess = null, rerun = false){
+                if (!guess) {
+                    guess = document.getElementById("guess-field").value.trim().toLowerCase()
+                    document.getElementById("guess-field").value = ""
+                    document.getElementById("status").innerText = ""
+                }
 
                 const guess_taxons = get_animal_taxons(guess)
                 if (!guess_taxons){
@@ -491,7 +509,7 @@
                         unknowns_node = null
                     }
                     if(best_guess === guess_taxons.length){
-                        win();
+                        win(rerun);
                         won = true;
                     }
                     else{
@@ -500,15 +518,18 @@
                         unknowns_node = root.add_to_tree(unknowns_taxon)
                     }
                 }
-                p = get_taxon_info(closest_taxon_names[0])
-                if (guess_count >= guess_limit && !won)
-                    lose()
+                if (!rerun)
+                    get_taxon_info(closest_taxon_names[0])
 
-                if (strg)
-                    strg.setItem("curr_tree", root.to_str())
+                if (guess_count >= guess_limit && !won)
+                    lose(rerun)
+
+                if (strg && !rerun) {
+                    curr_guesses.push(guess)
+                    strg.setItem("curr_guesses", JSON.stringify(curr_guesses))
+                }
 
                 visualize_tree()
-                await p
             }
             
             function autocomplete() {
@@ -670,9 +691,18 @@
             </div>
         </div>
         <script>
-            visualize_tree()
-            autocomplete();
-            get_taxon_info("animalia")
+            if (curr_guesses.length){
+                curr_guesses.forEach(
+                    (guess) => {
+                        guess_animal(guess, true)
+                    }
+                )
+            }
+            else{
+                visualize_tree()
+                get_taxon_info("animalia")
+            }
+            autocomplete()
         </script>
     </body>
 </html>
