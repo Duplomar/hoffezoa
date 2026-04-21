@@ -4,6 +4,7 @@ import fs from "fs";
 import zlib from "zlib"
 
 const app = express()
+app.disable('x-powered-by');
 const port = 8000
 
 function load_taxon_tree() {
