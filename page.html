@@ -117,17 +117,34 @@
                 border-radius: 5px;
                 width: 400px
             }
-            #close-modal {
+            .close-modal {
                 float: right;
                 font-size: 28px;
                 font-weight: bold;
             }
 
-            #close-modal:hover,
-            #close-modal:focus {
+            .close-modal:hover,
+            .close-modal:focus {
                 color: #31708e;
                 text-decoration: none;
                 cursor: pointer;
+            }
+
+            #stats{
+                display: flex;
+            }
+            .stat-block{
+                display: flex;
+                flex-direction: column;
+                flex: 1 1 0px;
+                margin: 5px;
+                padding: 4px;
+                background-color: #687864;
+                align-items: center;
+                text-align: center;
+            }
+            .stat-block p{
+                height: 20px;
             }
 
         </style>
@@ -284,7 +301,6 @@
                     res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(taxon_name)}`)
                     if (res.status === 200){
                         content = await res.json()
-                        console.log(content)
                         document.getElementById("info-title").innerText = content["title"]
                         if ("thumbnail" in content)
                             document.getElementById("info-img").src = content["thumbnail"].source
@@ -640,7 +656,7 @@
                 </div>
                 <h3>History</h3>
                 <div id="history">
-                    
+
                 </div>
             </div>
         </div>
