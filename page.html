@@ -16,6 +16,15 @@
             h3 {
                 text-align: center;
             }
+            button {
+                border-radius: 50%;
+                background-color: #687864;
+                color: #f7f9fb;
+                font-weight: bold;
+                font-size: large;
+                width: 35px;
+                height: 35px;
+            }
             .autocomplete {
                 /*the container must be positioned relative:*/
                 position: relative;
@@ -171,35 +180,6 @@
                     this.names = names
                     this.parent = parent
                     this.children = []
-                }
-
-                to_str(){
-                    let child_s = []
-                    this.children.forEach(
-                        (child) => {
-                            child_s.push(child.to_str())
-                        }
-                    )
-                    return `{"n":["${this.names.join('","')}"],"c": [${child_s.join(",")}]}`
-                }
-                
-                static _from_json(taxon_tree_json, parent){
-                    let new_node = new TaxonNode(taxon_tree_json["n"], parent)
-                    taxon_tree_json["c"].forEach(
-                        (child) => {
-                            new_node.children.push(TaxonNode._from_json(child, new_node))
-                        }
-                    )
-                    return new_node
-                }
-
-                static from_str(taxon_tree_str){
-                    return TaxonNode._from_json(JSON.parse(taxon_tree_str), null)
-                }
-                
-                print(indent = "") {
-                    console.log(indent + this.names)
-                    this.children.forEach((child) => {child.print(indent + " ")})
                 }
 
                 remove() {
@@ -456,9 +436,17 @@
                         strg.setItem("won_games", won_games)
                     }
                 }
+                if (strg) {
+                    document.getElementById("curr-streak").innerText = current_streak;
+                    document.getElementById("long-streak").innerText = longest_streak;
+                    document.getElementById("win-count").innerText = won_games;
+                    document.getElementById("game-count").innerText = played_games;
+                }
+                document.getElementById("guess-count").innerText = "Guesses: " + guess_count 
             }
             function win(rerun){
-                document.getElementById("status").innerText = "You win!!"
+                document.getElementById("status").innerText = "You win!"
+                document.getElementById("end-game-status").innerText = "You Win!" 
                 if (!rerun){
                     won_games++;
                     current_streak++;
@@ -470,7 +458,8 @@
             }
 
             function lose(rerun){
-                document.getElementById("status").innerText = "You lose!!"
+                document.getElementById("status").innerText = "You lost!"
+                document.getElementById("end-game-status").innerText = "You Lost!" 
                 game_over(rerun)
             }
 
@@ -629,7 +618,7 @@
         </script>
     </head>
     <body>
-        <div>
+        <div style="display: flex;justify-content: center;">
             <button onclick="document.getElementById('help').style.display='block'">?</button>
         </div>
         <div style="display: flex; flex-wrap: wrap;">
@@ -661,23 +650,25 @@
         <div class="modal" id="post-game">
             <div class="modal-content">
                 <span class="close-modal" onclick="close_el('post-game')">&times;</span>
+                <h3 id="end-game-status"></h3>
+                <p id="guess-count" style="text-align: center;"></p>
                 <div id="stats">
                     <div class="stat-block">
-                        <p>Guesses</p>
-                        <p id="final-guesses">0</p>
+                        <p>Wins</p>
+                        <p id="win-count">N/A</p>
+                    </div>
+                    <div class="stat-block">
+                        <p>Games</p>
+                        <p id="game-count">N/A</p>
                     </div>
                     <div class="stat-block">
                         <p>Current streak</p>
-                        <p id="curr-streak">0</p>
+                        <p id="curr-streak">N/A</p>
                     </div>
                     <div class="stat-block">
                         <p>Longest streak</p>
-                        <p id="long-streak">0</p>
+                        <p id="long-streak">N/A</p>
                     </div>
-                </div>
-                <h3>History</h3>
-                <div id="history">
-
                 </div>
             </div>
         </div>
