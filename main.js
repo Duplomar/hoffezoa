@@ -40,7 +40,7 @@ let page_br = "";
 
 
 function create_hash(text) {
-    return crypto.createHash('sha-512').update(text).digest("base64")
+    return crypto.createHash('sha512').update(text).digest("base64")
 }
 
 function set_todays_animal(){
