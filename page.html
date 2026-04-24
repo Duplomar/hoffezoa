@@ -555,23 +555,34 @@
                     a.setAttribute("id", list_id);
                     a.setAttribute("class", "autocomplete-items");
                     this.parentNode.appendChild(a);
+                    let suggestion_list = []
 
                     for (i = animal_start_index; i < taxon_tree.length; i++) {
-                        var relevant_name = null
-                        var relevant_index = null
-                        taxon_tree[i][0].forEach((name) => {
+                        const names = taxon_tree[i][0]
+                        let best_name = null
+                        let best_name_start = null
+                        for (let j = 0; j < names.length; j++) {
+                            const name = names[j];
                             const index = name.search(val)
-                            if (index != -1){
-                                relevant_name = name
-                                relevant_index = index
+                            if (index != -1 && (!best_name || index < best_name_start)){
+                                best_name = name
+                                best_name_start = index
                             }
-                        })
-                        if (relevant_name) {
+                        }
+                        if (best_name)
+                            suggestion_list.push([best_name_start, best_name, i])
+                    }
+
+                    suggestion_list.sort()
+                    suggestion_list.forEach(
+                        (nsi) => {
+                            const name = nsi[1]
+                            const i = nsi[2]
                             display_name = taxon_tree[i][0][1]
                             b = document.createElement("DIV");
                             b.innerHTML = display_name
-                            if (display_name != relevant_name)
-                                b.innerHTML += " (" + relevant_name + ")"
+                            if (display_name != name)
+                                b.innerHTML += " (" + name + ")"
                             
                             b.innerHTML += "<input type='hidden' value='" + display_name + "'>";
                                 b.addEventListener("click", function(e) {
@@ -580,7 +591,7 @@
                             });
                             a.appendChild(b);
                         }
-                    }
+                    )
                 });
                 inp.addEventListener("keydown", function(e) {
                     var el_list = document.getElementById(list_id);
