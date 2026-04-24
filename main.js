@@ -6,6 +6,51 @@ import zlib from "zlib"
 const app = express()
 app.disable('x-powered-by');
 const port = 8000
+const seed_salt = parseInt(process.env.seed_salt) || 42
+
+class RNG {
+    constructor(seed) {
+        this.n = 624;
+        this.m = 397;
+        this.MATRIX_A = 0x9908b0df;
+        this.UPPER_MASK = 0x80000000;
+        this.LOWER_MASK = 0x7fffffff;
+        this.state = new Array(this.n);
+        this.index = this.n + 1;
+        this.seed = seed;
+        this._init(seed);
+    }
+
+    _init(seed) {
+        this.state[0] = seed >>> 0;
+        for (let i = 1; i < this.n; i++) {
+            const s = this.state[i - 1] ^ (this.state[i - 1] >>> 30);
+            this.state[i] = ((((s & 0xffff0000) >>> 16) * 1812433253) << 16) + (s & 0x0000ffff) * 1812433253 + i;
+            this.state[i] >>>= 0; // Ensure unsigned
+        }
+    }
+
+    _twist() {
+        for (let i = 0; i < this.n; i++) {
+            const x = (this.state[i] & this.UPPER_MASK) + (this.state[(i + 1) % this.n] & this.LOWER_MASK);
+            let xA = x >>> 1;
+            if (x % 2 !== 0) xA ^= this.MATRIX_A;
+            this.state[i] = this.state[(i + this.m) % this.n] ^ xA;
+        }
+        this.index = 0;
+    }
+
+    // Returns a 32-bit unsigned integer
+    nextInt(start = 0, end = 2**31) {
+        if (this.index >= this.n) this._twist();
+        let y = this.state[this.index++];
+        y ^= y >>> 11;
+        y ^= (y << 7) & 0x9d2c5680;
+        y ^= (y << 15) & 0xefc60000;
+        y ^= y >>> 18;
+        return start + ((y >>> 0) % (end - start));
+    }
+}
 
 function load_taxon_tree() {
     const data = JSON.parse(fs.readFileSync("./tree_en_ncbi.json", "utf-8"))
@@ -44,10 +89,17 @@ function create_hash(text) {
 }
 
 function set_todays_animal(){
-    salt = crypto.randomInt(2**32)
+    const today = replace_time.toISOString().split('T')[0]
+    let today_num = 0
+    for (let i = 0; i < today.length; i++) 
+        today_num += today.charCodeAt(i) * (2**i)
+    
+    const rng_generator = new RNG(today_num + seed_salt)
+
+    salt = rng_generator.nextInt()
     todays_taxons = []
 
-    let i = crypto.randomInt(animal_start_index, taxon_tree.length)
+    let i = rng_generator.nextInt(animal_start_index, taxon_tree.length)
     yesterdays_animal_index = todays_animal_index
     todays_animal_index = i
     while (i) {
@@ -80,7 +132,7 @@ function set_todays_animal(){
         JSON.stringify(todays_taxons)
     ).replace(
         "{{ today }}", 
-        replace_time.toISOString().split('T')[0]
+        today
     )
 
     page_br = zlib.brotliCompressSync(Buffer.from(page));
