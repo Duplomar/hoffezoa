@@ -78,7 +78,11 @@ function set_todays_animal(){
     ).replace(
         "{{ todays_taxons }}", 
         JSON.stringify(todays_taxons)
+    ).replace(
+        "{{ today }}", 
+        replace_time.toISOString().split('T')[0]
     )
+
     page_br = zlib.brotliCompressSync(Buffer.from(page));
     replace_time.setDate(replace_time.getDate() + 1)
     expire_str = replace_time.toUTCString()

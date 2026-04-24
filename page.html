@@ -170,8 +170,8 @@
         <script>
             const unknown_name = "???"
             const guess_limit = 10;
-            const today = new Date()
-            
+
+            const today = new Date("{{ today }}")
             const taxon_tree = {{ taxon_tree }};
             const animal_start_index = {{ animal_start_index }};
             const salt = {{ salt }};
@@ -186,10 +186,11 @@
             }
 
             class TaxonNode {
-                constructor(names, parent = null) {
+                constructor(names, parent = null, is_answer = false) {
                     this.names = names
                     this.parent = parent
                     this.children = []
+                    this.is_answer = is_answer
                 }
 
                 remove() {
@@ -266,7 +267,7 @@
                 }
                 else {
                     strg.setItem("curr_guesses", "[]")
-                    strg.setItem("curr_play_date", today.toISOString())
+                    strg.setItem("curr_play_date", today.toISOString().split('T')[0])
                     if (diff > 1) {
                         strg.setItem("current_streak", "0")
                     }
@@ -384,13 +385,15 @@
             }
 
             let connection_vis_queue = []
-            function create_vis_node(parent_vis, names, vis_level){
-                const true_name = names[0]
-                const display_name = names[1]
+            function create_vis_node(parent_vis, node, vis_level){
+                const true_name = node.names[0]
+                const display_name = node.names[1]
 
                 const vis_node = document.createElement("div")
                 vis_node.innerText = display_name
                 vis_node.className = "node"
+                if (node.is_answer)
+                    vis_node.style.backgroundColor = "green"
                 vis_node.onclick = () => {get_taxon_info(true_name)}
 
                 let vis_layer = document.getElementById(`layer_${vis_level}`)
@@ -414,7 +417,7 @@
                     while (parent_node.children.length == 1)
                         parent_node = parent_node.children[0]
                 
-                const vis_node = create_vis_node(parent_vis, parent_node.names, vis_level)
+                const vis_node = create_vis_node(parent_vis, parent_node, vis_level)
                 
                 parent_node.children.forEach(node => {
                     visualize_node(vis_node, node, vis_level + 1)
@@ -499,7 +502,7 @@
                 document.getElementById("guess-counter").innerText = "Guesses: " + guess_count + "/" + guess_limit
 
                 var won = false;
-                root.add_to_tree(guess_taxons)
+                const leaf_node = root.add_to_tree(guess_taxons)
                 if (split_index > best_guess){
                     best_guess = split_index
                     closest_taxon_names = guess_taxons[best_guess - 1]
@@ -508,6 +511,7 @@
                         unknowns_node = null
                     }
                     if(best_guess === guess_taxons.length){
+                        leaf_node.is_answer = true
                         win(rerun);
                         won = true;
                     }
@@ -642,7 +646,7 @@
                     <input type="submit" id="guess-button" value="Guess"/>
                 </form>
                 <p id="guess-counter" style="text-align: center;"></p>
-                <p id="status" style="height: 30px;text-align: center;"></p>
+                <p id="status" style="height: 30px;text-align: center;">Welcome!</p>
                 <div id ="tree">
                 </div>
             </div>
@@ -708,6 +712,10 @@
                 get_taxon_info("animalia")
             }
             autocomplete()
+
+            if (yesterdays_animal_index != -1)
+                document.getElementById("status").innerText = "Welcome! Yesterdays animal was " + taxon_tree[i][0][1];
+            
         </script>
     </body>
 </html>
