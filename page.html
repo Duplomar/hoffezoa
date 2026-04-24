@@ -283,8 +283,11 @@
             async function create_hash(message) {
                 const msgUint8 = new TextEncoder().encode(message);
                 const hashBuffer = await window.crypto.subtle.digest("SHA-512", msgUint8); 
-                const output = new Uint8Array(hashBuffer).toBase64();
-                return output;
+                const output = (new Uint8Array(hashBuffer)).reduce(
+                    (s, b) => s + String.fromCharCode(b),
+                    ""
+                )
+                return btoa(output);
             }
             
             var curr_info = null
