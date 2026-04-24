@@ -170,8 +170,8 @@
         <script>
             const unknown_name = "???"
             const guess_limit = 10;
-            const today = new Date()
-            
+
+            const today = new Date("{{ today }}")
             const taxon_tree = {{ taxon_tree }};
             const animal_start_index = {{ animal_start_index }};
             const salt = {{ salt }};
@@ -266,7 +266,7 @@
                 }
                 else {
                     strg.setItem("curr_guesses", "[]")
-                    strg.setItem("curr_play_date", today.toISOString())
+                    strg.setItem("curr_play_date", today.toISOString().split('T')[0])
                     if (diff > 1) {
                         strg.setItem("current_streak", "0")
                     }
@@ -642,7 +642,7 @@
                     <input type="submit" id="guess-button" value="Guess"/>
                 </form>
                 <p id="guess-counter" style="text-align: center;"></p>
-                <p id="status" style="height: 30px;text-align: center;"></p>
+                <p id="status" style="height: 30px;text-align: center;">Welcome!</p>
                 <div id ="tree">
                 </div>
             </div>
@@ -708,6 +708,10 @@
                 get_taxon_info("animalia")
             }
             autocomplete()
+
+            if (yesterdays_animal_index != -1)
+                document.getElementById("status").innerText = "Welcome! Yesterdays animal was " + taxon_tree[i][0][1];
+            
         </script>
     </body>
 </html>
