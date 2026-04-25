@@ -173,15 +173,23 @@
 
             #stats{
                 display: flex;
+                flex-wrap: wrap;
+            }
+            .stat-container{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
             }
             .stat-block{
                 display: flex;
                 flex-direction: column;
-                flex: 1 1 0px;
                 margin: 5px;
                 padding: 4px;
                 background-color: #687864;
                 align-items: center;
+                width: 40%;
+                aspect-ratio: 1 / 1;
                 text-align: center;
             }
             .stat-block p{
@@ -701,22 +709,27 @@
                 <h3 id="end-game-status"></h3>
                 <p id="guess-count" style="text-align: center;"></p>
                 <div id="stats">
-                    <div class="stat-block">
-                        <p>Wins</p>
-                        <p id="win-count">N/A</p>
+                    <div class="stat-container">
+                        <div class="stat-block">
+                            <p>Wins</p>
+                            <p id="win-count">N/A</p>
+                        </div>
+                        <div class="stat-block">
+                            <p>Games</p>
+                            <p id="game-count">N/A</p>
+                        </div>
                     </div>
-                    <div class="stat-block">
-                        <p>Games</p>
-                        <p id="game-count">N/A</p>
+                    <div class="stat-container">
+                        <div class="stat-block">
+                            <p>Current streak</p>
+                            <p id="curr-streak">N/A</p>
+                        </div>
+                        <div class="stat-block">
+                            <p>Longest streak</p>
+                            <p id="long-streak">N/A</p>
+                        </div>
                     </div>
-                    <div class="stat-block">
-                        <p>Current streak</p>
-                        <p id="curr-streak">N/A</p>
-                    </div>
-                    <div class="stat-block">
-                        <p>Longest streak</p>
-                        <p id="long-streak">N/A</p>
-                    </div>
+
                 </div>
             </div>
         </div>
