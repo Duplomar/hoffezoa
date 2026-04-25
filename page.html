@@ -546,6 +546,7 @@
                 inp.addEventListener("input", function(e) {
                     var a, b, i, val = this.value;
                     val = val.toLowerCase()
+                    const multiword = (val.search(" ") != -1);
                     closeAllLists();
                     if (!val) 
                         return false;
@@ -561,23 +562,30 @@
                         const names = taxon_tree[i][0]
                         let best_name = null
                         let best_name_start = null
+                        let best_word_index = null
                         for (let j = 0; j < names.length; j++) {
                             const name = names[j];
-                            const index = name.search(val)
-                            if (index != -1 && (!best_name || index < best_name_start)){
-                                best_name = name
-                                best_name_start = index
+                            const words = multiword ? [name]: name.split(" ");
+                            for (let k = 0; k < words.length; k++) {
+                                const index = words[k].search(val)
+                                if (index != -1){
+                                    if (!best_name || index < best_name_start || (index == best_name_start && k < best_word_index)){
+                                        best_name = name
+                                        best_name_start = index
+                                        best_word_index = k
+                                    }
+                                }
                             }
                         }
                         if (best_name)
-                            suggestion_list.push([best_name_start, best_name, i])
+                            suggestion_list.push([best_name_start, best_word_index, best_name, i])
                     }
 
                     suggestion_list.sort()
                     suggestion_list.forEach(
                         (nsi) => {
-                            const name = nsi[1]
-                            const i = nsi[2]
+                            const name = nsi[2]
+                            const i = nsi[3]
                             display_name = taxon_tree[i][0][1]
                             b = document.createElement("DIV");
                             b.innerHTML = display_name
