@@ -7,6 +7,7 @@ const app = express()
 app.disable('x-powered-by');
 const port = 8000
 const seed_salt = parseInt(process.env.seed_salt) || 42
+const vid = 1;
 
 class RNG {
     constructor(seed) {
@@ -70,6 +71,9 @@ const page_template = fs.readFileSync(
 ).replace(
     "{{ taxon_tree }}", 
     JSON.stringify(taxon_tree)
+).replace(
+    "{{ vid }}",
+    vid
 )
 
 let replace_time = new Date()

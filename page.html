@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">  
         <style>
             * { 
                 box-sizing: border-box; 
             }
             body {
-                font: 16px Sans-serif;
+                font: Sans-serif;
                 display: flex;
                 flex-direction: column;
                 background-color: #8fc1e3;
@@ -29,11 +30,16 @@
             #content-container {
                 display: flex; 
                 flex-wrap: wrap;
+                max-width: 100%;
             }
             @media only screen and (orientation: portrait) {
                 #content-container{
                     flex-direction: column;
                 }
+            }
+            .content-block {
+                max-width: 100%;
+                flex: 1 1 0px;
             }
             .autocomplete {
                 /*the container must be positioned relative:*/
@@ -82,15 +88,30 @@
                 border-style: solid;
                 border-color: #31708e;
                 background-color: #687864;
-                padding: 10px;
+                padding: 6px;
                 margin: 5px;
                 cursor: pointer;
+                font-size: smaller;
+            }
+            #canvas{
+                position: absolute; 
+                width:100%; 
+                height: 100%; 
+                top: 0px; 
+                left: 0px;
+                pointer-events: none;
+                user-select: none;
+                touch-action: none;   
+            }
+            #tree{
+                max-width: 100%;
             }
             .vis-layer{
                 margin-bottom: 40px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                flex-wrap: wrap;
             }
             .autocomplete-items {
                 position: absolute;
@@ -134,7 +155,8 @@
                 padding: 20px;
                 border: 4px solid #31708e;
                 border-radius: 5px;
-                width: 400px
+                width: 400px;
+                max-width: 80%;
             }
             .close-modal {
                 float: right;
@@ -171,6 +193,7 @@
             const unknown_name = "???"
             const guess_limit = 10;
 
+            const vid = "{{ vid }}"
             const today = new Date("{{ today }}")
             const taxon_tree = {{ taxon_tree }};
             const animal_start_index = {{ animal_start_index }};
@@ -258,20 +281,24 @@
             let won_games = 0
 
             if (strg){
-                const curr_play_date_str = strg.getItem("curr_play_date")
-                curr_play_date = new Date(curr_play_date_str)
-                const diff = parseInt((today - curr_play_date)/(24 * 60 * 60 * 1000))
-                if (diff === 0) {
-                    const curr_guesses_str = strg.getItem("curr_guesses") || "[]"
-                    curr_guesses = JSON.parse(curr_guesses_str)
-                }
-                else {
-                    strg.setItem("curr_guesses", "[]")
-                    strg.setItem("curr_play_date", today.toISOString().split('T')[0])
-                    if (diff > 1) {
-                        strg.setItem("current_streak", "0")
+                if (strg.getItem("vid") === vid){
+                    const curr_play_date_str = strg.getItem("curr_play_date")
+                    curr_play_date = new Date(curr_play_date_str)
+                    const diff = parseInt((today - curr_play_date)/(24 * 60 * 60 * 1000))
+                    if (diff === 0) {
+                        const curr_guesses_str = strg.getItem("curr_guesses") || "[]"
+                        curr_guesses = JSON.parse(curr_guesses_str)
+                    }
+                    else {
+                        strg.setItem("curr_guesses", "[]")
+                        strg.setItem("curr_play_date", today.toISOString().split('T')[0])
+                        if (diff > 1) {
+                            strg.setItem("current_streak", "0")
+                        }
                     }
                 }
+                else
+                    strg.setItem("vid", vid)
 
                 current_streak = parseInt(strg.getItem("current_streak")) || 0
                 longest_streak = parseInt(strg.getItem("longest_streak")) || 0
@@ -343,47 +370,28 @@
                 return guess_taxons.length
             }
 
-            function draw_line(parent_node, child_node) {
+            function draw_line(canvas, parent_node, child_node) {
                 if (parent_node && child_node){
                     const NS = "http://www.w3.org/2000/svg";
-                    const canvas = document.createElementNS(NS, "svg")
 
                     const parent_rect = parent_node.getBoundingClientRect();
                     const child_rect = child_node.getBoundingClientRect();
                     
-                    const parent_x_center = (parent_rect.left + parent_rect.right)/2
-                    const child_x_center = (child_rect.left + child_rect.right)/2
+                    const parent_x = (parent_rect.left + parent_rect.right)/2
+                    const parent_y = parent_rect.bottom
 
-                    let left;
-                    let right;
-                    const parent_right =  child_x_center < parent_x_center;
-                    if (parent_right){                      
-                        left = child_x_center
-                        right = parent_x_center
-                    }
-                    else{
-                        left = parent_x_center
-                        right = child_x_center
-                    }
-                    const width = right - left
-                    const height = child_rect.top - parent_rect.bottom
-
-                    canvas.style.width = width + 1 + "px";
-                    canvas.style.height = height + "px";
-                    canvas.style.left = left - 1 + "px"
-                    canvas.style.top = parent_rect.bottom + "px"
-                    canvas.style.position = "absolute"
+                    const child_x= (child_rect.left + child_rect.right)/2
+                    const child_y = child_rect.top
 
                     const line = document.createElementNS(NS,"path")
-                    const parent_line_x = parent_right ? width : 0
-                    const child_line_x = parent_right ? 0: width
-                    line.setAttribute("d", `M ${parent_line_x}, 0 C ${parent_line_x}, ${height * 2/3}, ${child_line_x}, ${height/3}, ${child_line_x}, ${height}`)
+                    line.setAttribute(
+                        "d", 
+                        `M ${parent_x}, ${parent_y} C ${parent_x}, ${parent_y + (child_y - parent_y) * 2/3}, ${child_x}, ${parent_y + (child_y - parent_y)/3}, ${child_x}, ${child_y}`
+                    )
                     line.style.stroke = "#31708e" 
                     line.style.strokeWidth = "2px" 
                     line.style.fill = "none"
                     canvas.appendChild(line)
-                    
-                    document.getElementById("tree").appendChild(canvas)
                 }
             }
 
@@ -421,7 +429,7 @@
                         parent_node = parent_node.children[0]
                 
                 const vis_node = create_vis_node(parent_vis, parent_node, vis_level)
-                
+            
                 parent_node.children.forEach(node => {
                     visualize_node(vis_node, node, vis_level + 1)
                 });
@@ -429,12 +437,14 @@
 
             function visualize_tree(){
                 document.getElementById("tree").innerHTML = '';
+                const canvas = document.getElementById("canvas");
+                canvas.innerHTML = ''
                 connection_vis_queue = []
 
                 visualize_node(null, root)
                 connection_vis_queue.forEach(
                     (vis_nodes) => {
-                        draw_line(vis_nodes[0], vis_nodes[1])
+                        draw_line(canvas, vis_nodes[0], vis_nodes[1])
                     }
                 )
             }
@@ -486,8 +496,8 @@
                 if (!guess) {
                     guess = document.getElementById("guess-field").value.trim().toLowerCase()
                     document.getElementById("guess-field").value = ""
-                    document.getElementById("status").innerText = ""
                 }
+                document.getElementById("status").innerText = ""
 
                 const guess_taxons = get_animal_taxons(guess)
                 if (!guess_taxons){
@@ -655,15 +665,16 @@
         </script>
     </head>
     <body>
+        <svg id="canvas"></svg>
         <div style="display: flex;justify-content: center;">
             <button onclick="document.getElementById('help').style.display='block'">?</button>
         </div>
         <div id="content-container">
-            <div style="flex: 1 1 0px"></div>
-            <div style="flex: 1 1 0px">
+            <div class="content-block"></div>
+            <div class="content-block">
                 <form autocomplete="off" id = "guess-form" action="javascript:guess_animal()"> 
                     <div class="autocomplete" style="width:150px;">
-                        <input type="text" id="guess-field"></input>
+                        <input type="text" id="guess-field"/>
                     </div>
                     <input type="submit" id="guess-button" value="Guess"/>
                 </form>
@@ -673,7 +684,7 @@
                 </div>
             </div>
 
-            <div style="display: flex; flex: 1 1 0px; align-items: center;justify-content: center;">
+            <div class="content-block" style="display: flex; align-items: center;justify-content: center;">
                 <div id="taxon-info">
                     <a id="info-link" target="_blank" style="display: flex; align-items: center;justify-content: center; flex-direction: column;">
                         <img id="info-img" style="max-width: 95%; max-height: 300px; margin-top: 10px;"/>
