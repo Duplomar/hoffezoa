@@ -8,11 +8,10 @@
             }
             body {
                 font: Sans-serif;
-                display: flex;
-                flex-direction: column;
                 background-color: #8fc1e3;
                 font-weight: bold;
                 color: #f7f9fb;
+                margin: 0px;
             }
             h3 {
                 text-align: center;
@@ -672,35 +671,38 @@
         </script>
     </head>
     <body>
-        <svg id="canvas"></svg>
-        <div style="display: flex;justify-content: center;">
-            <button onclick="document.getElementById('help').style.display='block'">?</button>
-        </div>
-        <div id="content-container">
-            <div class="content-block"></div>
-            <div class="content-block">
-                <form autocomplete="off" id = "guess-form" action="javascript:guess_animal()"> 
-                    <div class="autocomplete" style="width:150px;">
-                        <input type="text" id="guess-field"/>
+        <div style="position: relative; min-height: 100%; ">
+            <svg id="canvas"></svg>
+            <div style="display: flex;justify-content: center;">
+                <button onclick="document.getElementById('help').style.display='block'">?</button>
+            </div>
+            <div id="content-container">
+                <div class="content-block"></div>
+                <div class="content-block">
+                    <form autocomplete="off" id = "guess-form" action="javascript:guess_animal()"> 
+                        <div class="autocomplete" style="width:150px;">
+                            <input type="text" id="guess-field"/>
+                        </div>
+                        <input type="submit" id="guess-button" value="Guess"/>
+                    </form>
+                    <p id="guess-counter" style="text-align: center;"></p>
+                    <p id="status" style="height: 30px;text-align: center;">Welcome!</p>
+                    <div id ="tree">
                     </div>
-                    <input type="submit" id="guess-button" value="Guess"/>
-                </form>
-                <p id="guess-counter" style="text-align: center;"></p>
-                <p id="status" style="height: 30px;text-align: center;">Welcome!</p>
-                <div id ="tree">
                 </div>
-            </div>
 
-            <div class="content-block" style="display: flex; align-items: center;justify-content: center;">
-                <div id="taxon-info">
-                    <a id="info-link" target="_blank" style="display: flex; align-items: center;justify-content: center; flex-direction: column;">
-                        <img id="info-img" style="max-width: 95%; max-height: 300px; margin-top: 10px;"/>
-                        <h2 id="info-title" style="margin-bottom: -10px; max-width: 95%; color:#f7f9fb"></h2>
-                    </a>
-                    <div id="info-summary" style="text-overflow: clip; max-width: 95%;"></div>
+                <div class="content-block" style="display: flex; align-items: center;justify-content: center;">
+                    <div id="taxon-info">
+                        <a id="info-link" target="_blank" style="display: flex; align-items: center;justify-content: center; flex-direction: column;">
+                            <img id="info-img" style="max-width: 95%; max-height: 300px; margin-top: 10px;"/>
+                            <h2 id="info-title" style="margin-bottom: -10px; max-width: 95%; color:#f7f9fb"></h2>
+                        </a>
+                        <div id="info-summary" style="text-overflow: clip; max-width: 95%;"></div>
+                    </div>
                 </div>
             </div>
         </div>
+
 
         <div class="modal" id="post-game">
             <div class="modal-content">
