@@ -54,7 +54,8 @@ class RNG {
 }
 
 function load_taxon_tree() {
-    const data = JSON.parse(fs.readFileSync("./tree_en_ncbi.json", "utf-8"))
+    const tree_file = process.env.tree_file || "./tree_en_ncbi.json"
+    const data = JSON.parse(fs.readFileSync(tree_file, "utf-8"))
     return [
         data["tree"],
         data["leaf_start"]
@@ -183,5 +184,4 @@ app.get('/', (req, res) => {
     else
         res.send(page)
 })
-
-app.listen(port, () => {console.log(`Metazoa running at ${port}`)})
+app.listen(port, () => {console.log(`Hoffezoa running at ${port}`)})

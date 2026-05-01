@@ -1,0 +1,89 @@
+{
+    "tree": [
+        [
+            ["animal", "animal"],
+            0
+        ],
+        [
+            ["mammal", "mammal"],
+            0
+        ],
+        [
+            ["insect", "insect"],
+            0
+        ],
+        [
+            ["fish", "fish"],
+            0
+        ],
+        [
+            ["reptile", "reptile"],
+            0
+        ],
+        [
+            ["monkey", "monkey"],
+            1
+        ],
+        [
+            ["carnivore", "carnivore"],
+            1
+        ],
+        [
+            ["bird", "bird"],
+            4
+        ],
+        [
+            ["lizard", "lizard"],
+            4
+        ],
+        [
+            ["ant", "ant"],
+            2
+        ],
+        [
+            ["bee", "bee"],
+            2
+        ],
+        [
+            ["cat", "cat"],
+            6
+        ],
+        [
+            ["crocodile", "crocodile"],
+            8
+        ],
+        [
+            ["crow", "crow"],
+            7
+        ],
+        [
+            ["dog", "dog"],
+            6
+        ],
+        [
+            ["dove", "dove"],
+            7
+        ],
+        [
+            ["dragon", "dragon"],
+            8
+        ],
+        [
+            ["gorilla", "gorilla"],
+            5
+        ],
+        [
+            ["human", "human"],
+            5
+        ],
+        [
+            ["salmon", "salmon"],
+            3
+        ],
+        [
+            ["shark", "shark"],
+            3
+        ]
+    ],
+    "leaf_start": 9
+}
