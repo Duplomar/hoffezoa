@@ -109,7 +109,6 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                flex-wrap: wrap;
             }
             .autocomplete-items {
                 position: absolute;
@@ -380,14 +379,17 @@
                 if (parent_node && child_node){
                     const NS = "http://www.w3.org/2000/svg";
 
+                    const canvas_rect = canvas.getBoundingClientRect();
+                    const x0 = canvas_rect.left
+                    const y0 = canvas_rect.top
                     const parent_rect = parent_node.getBoundingClientRect();
                     const child_rect = child_node.getBoundingClientRect();
                     
-                    const parent_x = (parent_rect.left + parent_rect.right)/2
-                    const parent_y = parent_rect.bottom
+                    const parent_x = (parent_rect.left + parent_rect.right)/2 - x0
+                    const parent_y = parent_rect.bottom - y0
 
-                    const child_x= (child_rect.left + child_rect.right)/2
-                    const child_y = child_rect.top
+                    const child_x= (child_rect.left + child_rect.right)/2 - x0
+                    const child_y = child_rect.top - y0
 
                     const line = document.createElementNS(NS,"path")
                     line.setAttribute(
@@ -671,34 +673,36 @@
         </script>
     </head>
     <body>
-        <div style="position: relative; min-height: 100%; ">
-            <svg id="canvas"></svg>
-            <div style="display: flex;justify-content: center;">
-                <button onclick="document.getElementById('help').style.display='block'">?</button>
-            </div>
-            <div id="content-container">
-                <div class="content-block"></div>
-                <div class="content-block">
-                    <form autocomplete="off" id = "guess-form" action="javascript:guess_animal()"> 
-                        <div class="autocomplete" style="width:150px;">
-                            <input type="text" id="guess-field"/>
-                        </div>
-                        <input type="submit" id="guess-button" value="Guess"/>
-                    </form>
-                    <p id="guess-counter" style="text-align: center;"></p>
-                    <p id="status" style="height: 30px;text-align: center;">Welcome!</p>
-                    <div id ="tree">
+        <div style="display: flex;justify-content: center;">
+            <button onclick="document.getElementById('help').style.display='block'">?</button>
+        </div>
+        <div id="content-container">
+            <div class="content-block"></div>
+            <div class="content-block">
+                <form autocomplete="off" id = "guess-form" action="javascript:guess_animal()"> 
+                    <div class="autocomplete" style="width:150px;">
+                        <input type="text" id="guess-field"/>
+                    </div>
+                    <input type="submit" id="guess-button" value="Guess"/>
+                </form>
+                <p id="guess-counter" style="text-align: center;"></p>
+                <p id="status" style="height: 30px;text-align: center;">Welcome!</p>
+                
+                <div style="overflow-x: scroll;">
+                    <div style="position: relative;">
+                        <svg id="canvas"></svg>
+                        <div id ="tree"></div>
                     </div>
                 </div>
+            </div>
 
-                <div class="content-block" style="display: flex; align-items: center;justify-content: center;">
-                    <div id="taxon-info">
-                        <a id="info-link" target="_blank" style="display: flex; align-items: center;justify-content: center; flex-direction: column;">
-                            <img id="info-img" style="max-width: 95%; max-height: 300px; margin-top: 10px;"/>
-                            <h2 id="info-title" style="margin-bottom: -10px; max-width: 95%; color:#f7f9fb"></h2>
-                        </a>
-                        <div id="info-summary" style="text-overflow: clip; max-width: 95%;"></div>
-                    </div>
+            <div class="content-block" style="display: flex; align-items: center;justify-content: center;">
+                <div id="taxon-info">
+                    <a id="info-link" target="_blank" style="display: flex; align-items: center;justify-content: center; flex-direction: column;">
+                        <img id="info-img" style="max-width: 95%; max-height: 300px; margin-top: 10px;"/>
+                        <h2 id="info-title" style="margin-bottom: -10px; max-width: 95%; color:#f7f9fb"></h2>
+                    </a>
+                    <div id="info-summary" style="text-overflow: clip; max-width: 95%;"></div>
                 </div>
             </div>
         </div>
